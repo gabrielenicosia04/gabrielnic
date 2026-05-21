@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shape Spawner</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #fff; overflow: hidden; font-family: sans-serif; }
+
+    video { display: none; }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      background: #fff;
+    }
+
+    #clear-btn {
+      position: relative;
+      display: block;
+      margin-top: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #f5f5f5;
+      color: #333;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+      text-align: center;
+    }
+    #clear-btn:hover { background: #eee; }
+
+    #status {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      color: rgba(0,0,0,0.5);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    #legend {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #333;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    #legend .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    #legend .dot.red { background: #ea4335; }
+    #legend .dot.blue { background: #1a73e8; }
+    #legend .sep { border-top: 1px solid #eee; margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <a href="../index.html" style="position:fixed;top:16px;left:16px;z-index:1000;color:#000;font-size:48px;text-decoration:none;font-family:serif;">&#8592;</a>
+  <video id="video" playsinline></video>
+  <canvas id="canvas"></canvas>
+  <div id="status">Caricamento...</div>
+  <div id="legend">
+    <div><span class="dot red"></span>4 + 8 &#8594; triangolo</div>
+    <div><span class="dot red"></span>4 + 12 &#8594; quadrato</div>
+    <div><span class="dot red"></span>4 + 16 &#8594; cerchio</div>
+    <div><span class="dot red"></span>4 + 20 &#8594; poligono</div>
+    <div class="sep"></div>
+    <div><span class="dot blue"></span>4 + 4 &#8594; aumenta forme</div>
+    <div><span class="dot blue"></span>20 + 20 &#8594; riduce forme</div>
+    <button id="clear-btn">Ripulisci</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection"></script>
+  <script>
+    const videoEl = document.getElementById('video');
+    const canvasEl = document.getElementById('canvas');
+    const statusEl = document.getElementById('status');
+    const clearBtn = document.getElementById('clear-btn');
+    const ctx = canvasEl.getContext('2d');
+
+    let detector = null;
+    const shapes = [];
+
+    const FINGER_MAP = {
+      8: 'triangle',
+      12: 'square',
+      16: 'circle',
+      20: 'polygon',
+    };
+
+    const THRESHOLD = 40;
+    const BOTH_HANDS_THRESHOLD = 60;
+    const prevPinchState = {};
+    let bothThumbsWasPinching = false;
+    let bothPinkiesWasPinching = false;
+
+    function resizeCanvas() {
+      canvasEl.width = window.innerWidth;
+      canvasEl.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const FINGER_TIPS = [4, 8, 12, 16, 20];
+
+    const CONNECTIONS = [
+      [0,1],[1,2],[2,3],[3,4],
+      [0,5],[5,6],[6,7],[7,8],
+      [0,9],[9,10],[10,11],[11,12],
+      [0,13],[13,14],[14,15],[15,16],
+      [0,17],[17,18],[18,19],[19,20],
+      [5,9],[9,13],[13,17]
+    ];
+
+    function drawLandmarks(landmarks) {
+      for (const lm of landmarks) {
+        ctx.beginPath();
+        ctx.arc(lm[0] * canvasEl.width, lm[1] * canvasEl.height, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#1a73e8';
+        ctx.fill();
+      }
+    }
+
+    function drawConnections(landmarks, connections) {
+      ctx.strokeStyle = 'rgba(26, 115, 232, 0.3)';
+      ctx.lineWidth = 2;
+      for (const [i, j] of connections) {
+        ctx.beginPath();
+        ctx.moveTo(landmarks[i][0] * canvasEl.width, landmarks[i][1] * canvasEl.height);
+        ctx.lineTo(landmarks[j][0] * canvasEl.width, landmarks[j][1] * canvasEl.height);
+        ctx.stroke();
+      }
+    }
+
+    function randomBetween(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function randomColor() {
+      return `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
+    }
+
+    function spawnShape(type) {
+      const size = randomBetween(90, 180);
+      shapes.push({
+        type,
+        x: randomBetween(size, canvasEl.width - size),
+        y: randomBetween(size, canvasEl.height - size),
+        size,
+        color: randomColor(),
+      });
+    }
+
+    function drawTriangle(c, x, y, size) {
+      const h = size * (Math.sqrt(3) / 2);
+      c.beginPath();
+      c.moveTo(x, y - h / 2);
+      c.lineTo(x - size / 2, y + h / 2);
+      c.lineTo(x + size / 2, y + h / 2);
+      c.closePath();
+      c.fill();
+    }
+
+    function drawShape(shape) {
+      const { type, x, y, size, color } = shape;
+      ctx.fillStyle = color;
+
+      switch (type) {
+        case 'triangle':
+          drawTriangle(ctx, x, y, size);
+          break;
+        case 'square':
+          ctx.fillRect(x - size / 2, y - size / 2, size, size);
+          break;
+        case 'circle':
+          ctx.beginPath();
+          ctx.arc(x, y, size / 2, 0, 2 * Math.PI);
+          ctx.fill();
+          break;
+        case 'polygon': {
+          const sides = 5;
+          ctx.beginPath();
+          for (let i = 0; i < sides; i++) {
+            const angle = (i * 2 * Math.PI) / sides - Math.PI / 2;
+            const px = x + (size / 2) * Math.cos(angle);
+            const py = y + (size / 2) * Math.sin(angle);
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+      }
+    }
+
+    function detectLoop() {
+      if (!videoEl.videoWidth) { requestAnimationFrame(detectLoop); return; }
+      if (detector) {
+        detector.estimateHands(videoEl).then(hands => {
+          ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+
+          for (const shape of shapes) {
+            drawShape(shape);
+          }
+
+          const visibleHandIds = new Set();
+
+          for (const hand of hands) {
+            const lm = hand.keypoints.map(kp => [1 - kp.x / videoEl.videoWidth, kp.y / videoEl.videoHeight]);
+            drawConnections(lm, CONNECTIONS);
+            drawLandmarks(lm);
+
+            for (const idx of FINGER_TIPS) {
+              const tip = lm[idx];
+              ctx.beginPath();
+              ctx.arc(tip[0] * canvasEl.width, tip[1] * canvasEl.height, 8, 0, Math.PI * 2);
+              ctx.fillStyle = '#ea4335';
+              ctx.fill();
+              ctx.fillStyle = 'white';
+              ctx.font = '12px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(idx, tip[0] * canvasEl.width, tip[1] * canvasEl.height);
+            }
+
+            const thumb = lm[4];
+            const handId = hand.handedness;
+            const fingertips = [8, 12, 16, 20];
+            let closestFinger = null;
+            let closestDist = Infinity;
+
+            for (const idx of fingertips) {
+              const tip = lm[idx];
+              const dx = (tip[0] - thumb[0]) * canvasEl.width;
+              const dy = (tip[1] - thumb[1]) * canvasEl.height;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < closestDist) {
+                closestDist = dist;
+                closestFinger = idx;
+              }
+            }
+
+            const isPinching = closestDist < THRESHOLD;
+            const prevFinger = prevPinchState[handId];
+
+            if (isPinching) {
+              if (prevFinger === undefined || prevFinger !== closestFinger) {
+                const type = FINGER_MAP[closestFinger];
+                if (type) spawnShape(type);
+              }
+              prevPinchState[handId] = closestFinger;
+            } else {
+              prevPinchState[handId] = undefined;
+            }
+
+            visibleHandIds.add(handId);
+          }
+
+          for (const id in prevPinchState) {
+            if (!visibleHandIds.has(id)) {
+              delete prevPinchState[id];
+            }
+          }
+
+          if (hands.length >= 2) {
+            const t0 = hands[0].keypoints[4];
+            const t1 = hands[1].keypoints[4];
+            const p0 = hands[0].keypoints[20];
+            const p1 = hands[1].keypoints[20];
+
+            const t0x = (1 - t0.x / videoEl.videoWidth) * canvasEl.width;
+            const t0y = (t0.y / videoEl.videoHeight) * canvasEl.height;
+            const t1x = (1 - t1.x / videoEl.videoWidth) * canvasEl.width;
+            const t1y = (t1.y / videoEl.videoHeight) * canvasEl.height;
+            const p0x = (1 - p0.x / videoEl.videoWidth) * canvasEl.width;
+            const p0y = (p0.y / videoEl.videoHeight) * canvasEl.height;
+            const p1x = (1 - p1.x / videoEl.videoWidth) * canvasEl.width;
+            const p1y = (p1.y / videoEl.videoHeight) * canvasEl.height;
+
+            const dt = Math.sqrt((t0x - t1x) ** 2 + (t0y - t1y) ** 2);
+            const dp = Math.sqrt((p0x - p1x) ** 2 + (p0y - p1y) ** 2);
+
+            const mx4 = (t0x + t1x) / 2;
+            const my4 = (t0y + t1y) / 2;
+            const mx20 = (p0x + p1x) / 2;
+            const my20 = (p0y + p1y) / 2;
+
+            if (dt < BOTH_HANDS_THRESHOLD) {
+              if (!bothThumbsWasPinching) {
+                for (const shape of shapes) {
+                  if (Math.abs(mx4 - shape.x) < shape.size && Math.abs(my4 - shape.y) < shape.size) {
+                    shape.size *= 1.3;
+                    break;
+                  }
+                }
+              }
+              bothThumbsWasPinching = true;
+            } else {
+              bothThumbsWasPinching = false;
+            }
+
+            if (dp < BOTH_HANDS_THRESHOLD) {
+              if (!bothPinkiesWasPinching) {
+                for (const shape of shapes) {
+                  if (Math.abs(mx20 - shape.x) < shape.size && Math.abs(my20 - shape.y) < shape.size) {
+                    shape.size = Math.max(20, shape.size * 0.7);
+                    break;
+                  }
+                }
+              }
+              bothPinkiesWasPinching = true;
+            } else {
+              bothPinkiesWasPinching = false;
+            }
+          } else {
+            bothThumbsWasPinching = false;
+            bothPinkiesWasPinching = false;
+          }
+
+          requestAnimationFrame(detectLoop);
+        }).catch(err => {
+          console.error(err);
+          requestAnimationFrame(detectLoop);
+        });
+      } else {
+        requestAnimationFrame(detectLoop);
+      }
+    }
+
+    clearBtn.addEventListener('click', () => {
+      shapes.length = 0;
+    });
+
+    async function init() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoEl.srcObject = stream;
+        await videoEl.play();
+
+        detector = await handPoseDetection.createDetector(
+          handPoseDetection.SupportedModels.MediaPipeHands,
+          {
+            runtime: 'mediapipe',
+            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
+            modelType: 'full',
+            maxHands: 4,
+          }
+        );
+
+        statusEl.textContent = 'Pronto! Fai un pinch per creare forme.';
+        requestAnimationFrame(detectLoop);
+      } catch (err) {
+        statusEl.textContent = `Errore: ${err.message}`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
