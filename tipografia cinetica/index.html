@@ -111,17 +111,14 @@ function drawFabric(ctx_, W_, H_) {
   }
   cloth.closePath();
 
-  ctx_.save();
   ctx_.shadowColor = 'rgba(0,0,0,0.12)';
   ctx_.shadowBlur = 30;
   ctx_.shadowOffsetY = 6;
   ctx_.fillStyle = '#2a3a5c';
   ctx_.fill(cloth);
-  ctx_.restore();
-  ctx_.save();
-  ctx_.clip(cloth);
-
-  ctx_.restore();
+  ctx_.shadowColor = 'transparent';
+  ctx_.shadowBlur = 0;
+  ctx_.shadowOffsetY = 0;
 }
 
 let zigCx, zigTopY, zigH, zigW;
