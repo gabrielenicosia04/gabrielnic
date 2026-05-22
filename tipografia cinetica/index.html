@@ -351,11 +351,11 @@ function draw(ts) {
   ctx.save();
   drawFabric(ctx, W, H);
 
-  // Letters during zigzag that are RIGHT of center + all after zigzag — drawn ON TOP
+  // Letters during zigzag that are RIGHT of center — drawn ON fabric
   for (const d of letterData) {
-    if (d.raw >= 1 || d.drawX >= W / 2) {
+    if (d.raw < 1 && d.drawX >= W / 2) {
       const segIdx = Math.floor(d.raw * NUM_STITCHES * 2);
-      const swap = d.raw < 1 && segIdx % 2 === 0;
+      const swap = segIdx % 2 === 0;
       const ch = swap ? LETTERS[LETTERS.length - 1 - d.i] : LETTERS[d.i];
       drawLetter(ctx, ch, d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
     }
@@ -417,23 +417,36 @@ function draw(ts) {
     drawSafetyPin(ctx, endPt, alpha);
   }
 
-  // Thread trailing from zigzag end to finished letters
-  if (stitchProg > 0 && alpha > 0) {
-    const zigEnd = getZigzagPoint(1);
-    for (const d of letterData) {
-      if (d.raw >= 1 && alpha > 0) {
-        ctx.globalAlpha = alpha * 0.5;
-        ctx.strokeStyle = cfg.tCol;
-        ctx.lineWidth = cfg.tW * 0.6;
-        ctx.beginPath();
-        ctx.moveTo(zigEnd.x, zigEnd.y);
-        ctx.lineTo(d.drawX, d.drawY);
-        ctx.stroke();
-      }
+  ctx.restore();
+
+  // Finished letters (exited zigzag) — drawn on white background
+  for (const d of letterData) {
+    if (d.raw >= 1 && alpha > 0) {
+      const ch = LETTERS[d.i];
+      ctx.save();
+      ctx.translate(d.drawX, d.drawY);
+      ctx.font = `900 ${cfg.lSz}px 'Bad Script', cursive`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = alpha;
+      // dark shadow for readability on white
+      ctx.fillStyle = '#222';
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 4;
+      ctx.fillText(ch, 0, 0);
+      // thread trailing from zigzag end to this letter
+      const zigEnd = getZigzagPoint(1);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = cfg.tCol;
+      ctx.lineWidth = cfg.tW * 0.5;
+      ctx.globalAlpha = alpha * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(zigEnd.x, zigEnd.y);
+      ctx.lineTo(d.drawX, d.drawY);
+      ctx.stroke();
+      ctx.restore();
     }
   }
-
-  ctx.restore();
 
   } catch (e) { console.error(e); }
   requestAnimationFrame(draw);
