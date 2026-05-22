@@ -149,7 +149,7 @@ function zigzagVertex(idx) {
     return { x: zigCx, y: zigTopY + (sn / NUM_STITCHES) * zigH };
   } else {
     const sn = Math.floor(idx / 2);
-    const isLeft = sn % 2 === 0;
+    const isLeft = sn % 2 !== 0;
     return {
       x: zigCx + (isLeft ? -1 : 1) * zigW,
       y: zigTopY + ((sn + 0.5) / NUM_STITCHES) * zigH,
@@ -173,7 +173,7 @@ function zigzagSide(t) {
   if (idx >= totalSegs) return 'right';
   if (idx % 2 === 0) return 'fold';
   const sn = Math.floor(idx / 2);
-  return sn % 2 === 0 ? 'left' : 'right';
+  return sn % 2 === 0 ? 'right' : 'left';
 }
 
 function drawLetter(ctx_, char, x, y, size, color, angle, alpha, mode) {
@@ -285,17 +285,15 @@ function draw(ts) {
   ctx.clearRect(0, 0, W, H);
   drawBackground(ctx, W, H);
 
-  drawFabric(ctx, W, H);
-
-  // All 6 letters on the LEFT side — visible on top of the fabric
+  // Compute positions and sides for all letters
+  const letterData = [];
   for (let i = 0; i < LETTERS.length; i++) {
     const raw = (ct - stg * i) / letterTravelTime;
     const prog = clamp(raw, 0, 1);
-    if (raw < 0) continue;
     const endPt = getZigzagPoint(1);
     const fx = W / 2 - 80 + (i - 2.5) * cfg.lSz * 0.6;
     const fy = H * 0.88;
-    let drawX, drawY;
+    let drawX, drawY, mode;
     if (raw >= 1) {
       const sinceDone = raw - 1;
       if (sinceDone < 0.3) {
@@ -307,14 +305,46 @@ function draw(ts) {
         drawX = fx;
         drawY = fy;
       }
-    } else {
+      mode = 'done';
+    } else if (raw >= 0) {
       const pt = getZigzagPoint(prog);
       drawX = pt.x;
       drawY = pt.y;
+      mode = zigzagSide(prog);
+    } else {
+      continue;
     }
-    if (raw >= 1) {
-      drawLetter(ctx, LETTERS[i], drawX, drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
+    letterData.push({ i, raw, drawX, drawY, mode });
+  }
+
+  // Letters during zigzag that are LEFT of center — drawn UNDER fabric
+  for (const d of letterData) {
+    if (d.raw < 1 && d.drawX < W / 2) {
+      drawLetter(ctx, LETTERS[d.i], d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
     }
+  }
+
+  drawFabric(ctx, W, H);
+
+  // Letters during zigzag that are RIGHT of center + all after zigzag — drawn ON TOP
+  for (const d of letterData) {
+    if (d.raw >= 1 || d.drawX >= W / 2) {
+      drawLetter(ctx, LETTERS[d.i], d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
+    }
+  }
+
+  // Imaginary line at the center fold
+  if (alpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.15 * alpha;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(W / 2, H * 0.05);
+    ctx.lineTo(W / 2, H * 0.78);
+    ctx.stroke();
+    ctx.restore();
   }
 
   let maxProg = 0;
