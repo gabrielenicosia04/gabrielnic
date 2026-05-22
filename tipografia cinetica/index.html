@@ -365,9 +365,55 @@ function draw(ts) {
     }
   }
 
-  // Draw stitches that accumulate as S moves
+  // Draw zigzag thread that accumulates as S moves
   if (stitchProg > 0 && alpha > 0) {
-    drawStitches(ctx, threadProg, cfg.tCol, cfg.tW, alpha);
+    const totalSegs = NUM_STITCHES * 2;
+    const segs = Math.floor(threadProg * totalSegs);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = cfg.tCol;
+    ctx.lineWidth = cfg.tW;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = cfg.tCol;
+    ctx.shadowBlur = 2;
+    for (let i = 0; i < segs; i++) {
+      const p1 = zigzagVertex(i);
+      const p2 = zigzagVertex(i + 1);
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    // Partial segment from vertex to S
+    if (segs < totalSegs) {
+      const p1 = zigzagVertex(segs);
+      const p2 = getZigzagPoint(threadProg);
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = cfg.tCol;
+      ctx.lineWidth = cfg.tW;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+
+    // Needle hole dots at completed segments
+    ctx.shadowBlur = 0;
+    for (let i = 0; i < NUM_STITCHES + 1; i++) {
+      const t = (i + 0.001) / (NUM_STITCHES * 2);
+      if (t > threadProg) break;
+      const pt = zigzagVertex(i * 2);
+      ctx.globalAlpha = alpha * 0.7;
+      ctx.fillStyle = 'rgba(30,20,10,0.6)';
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, cfg.tW * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, cfg.tW * 0.15, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(10,5,0,0.8)';
+      ctx.fill();
+    }
   }
 
   if (stitchProg >= 1 && alpha > 0) {
