@@ -338,6 +338,8 @@ function draw(ts) {
     }
   }
   const stitchProg = Math.min(1, maxProg);
+  const sSegIdx = Math.floor(maxProg * NUM_STITCHES * 2);
+  const threadProg = sSegIdx % 2 === 0 ? minProg : maxProg;
 
   ctx.save();
   drawFabric(ctx, W, H);
@@ -355,7 +357,7 @@ function draw(ts) {
   // Draw thread segments completed by ALL letters
   if (stitchProg > 0 && alpha > 0) {
     const totalSegs = NUM_STITCHES * 2;
-    const segs = Math.floor(maxProg * totalSegs);
+    const segs = Math.floor(threadProg * totalSegs);
     for (let i = 0; i < segs; i++) {
       const p1 = zigzagVertex(i);
       const p2 = zigzagVertex(i + 1);
@@ -394,7 +396,7 @@ function draw(ts) {
     ctx.shadowBlur = 0;
     for (let i = 0; i < NUM_STITCHES + 1; i++) {
       const t = (i + 0.001) / (NUM_STITCHES * 2);
-      if (t > maxProg) break;
+      if (t > threadProg) break;
       const pt = zigzagVertex(i * 2);
       ctx.globalAlpha = alpha * 0.7;
       ctx.fillStyle = 'rgba(30,20,10,0.6)';
