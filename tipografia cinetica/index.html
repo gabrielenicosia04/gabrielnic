@@ -289,7 +289,7 @@ function draw(ts) {
   // Compute positions and sides for all letters
   const letterData = [];
   for (let i = 0; i < LETTERS.length; i++) {
-    const raw = (ct - stg * (LETTERS.length - 1 - i)) / letterTravelTime;
+    const raw = (ct - stg * i) / letterTravelTime;
     const prog = clamp(raw, 0, 1);
     const endPt = getZigzagPoint(1);
     const fx = W / 2 - 80 + (i - 2.5) * cfg.lSz * 0.6;
@@ -327,7 +327,7 @@ function draw(ts) {
 
   let minProg = 1, maxProg = 0;
   for (let i = 0; i < LETTERS.length; i++) {
-    const raw = (ct - stg * (LETTERS.length - 1 - i)) / letterTravelTime;
+    const raw = (ct - stg * i) / letterTravelTime;
     const prog = clamp(raw, 0, 1);
     if (prog > 0) {
       if (prog < minProg) minProg = prog;
@@ -368,7 +368,7 @@ function draw(ts) {
 
     // For each visible letter, draw the trail right behind it
     for (let i = 0; i < LETTERS.length; i++) {
-      const raw = (ct - stg * (LETTERS.length - 1 - i)) / letterTravelTime;
+      const raw = (ct - stg * i) / letterTravelTime;
       const prog = clamp(raw, 0, 1);
       if (raw < 0 || raw >= 1) continue;
       const segIdx = Math.floor(prog * totalSegs);
