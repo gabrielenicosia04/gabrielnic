@@ -366,9 +366,22 @@ function draw(ts) {
     for (let i = 0; i < segs; i++) {
       const p1 = zigzagVertex(i);
       const p2 = zigzagVertex(i + 1);
+      const curl = Math.max(0, 1 - (segs - i) / 3) * 3;
       ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
+      if (curl > 0.3) {
+        const mx = (p1.x + p2.x) / 2;
+        const my = (p1.y + p2.y) / 2;
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const px = -dy / len;
+        const py = dx / len;
+        const off = curl * len * 0.03;
+        ctx.quadraticCurveTo(mx + px * off, my + py * off, p2.x, p2.y);
+      } else {
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+      }
       ctx.stroke();
     }
     ctx.shadowBlur = 0;
@@ -382,7 +395,18 @@ function draw(ts) {
       ctx.lineWidth = cfg.tW;
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (len > 5) {
+        const px = -dy / len;
+        const py = dx / len;
+        const mx = (p1.x + p2.x) / 2;
+        const my = (p1.y + p2.y) / 2;
+        ctx.quadraticCurveTo(mx + px * len * 0.05, my + py * len * 0.05, p2.x, p2.y);
+      } else {
+        ctx.lineTo(p2.x, p2.y);
+      }
       ctx.stroke();
     }
 
