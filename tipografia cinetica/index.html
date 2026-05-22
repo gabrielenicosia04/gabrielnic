@@ -342,20 +342,6 @@ function draw(ts) {
     drawSafetyPin(ctx, endPt, alpha);
   }
 
-  // Imaginary line at the fabric's left edge
-  if (alpha > 0) {
-    ctx.save();
-    ctx.globalAlpha = 0.2 * alpha;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(W / 2, H * 0.78);
-    ctx.lineTo(W / 2, H * 0.96);
-    ctx.stroke();
-    ctx.restore();
-  }
-
   } catch (e) { console.error(e); }
   requestAnimationFrame(draw);
 }
