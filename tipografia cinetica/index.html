@@ -38,7 +38,6 @@ canvas { display: block; width: 100%; height: 100%; }
   <label>Letters <input type="color" id="letterColor" value="#e0e0e0"></label>
   <label>Width <input type="range" id="threadWidth" min="0.5" max="6" step="0.1" value="2.5"><span id="twVal">2.5</span></label>
   <label>Size <input type="range" id="letterSize" min="10" max="80" step="1" value="42"><span id="lsVal">42</span></label>
-  <label>Stagger <input type="range" id="stagger" min="0" max="0.5" step="0.005" value="0"><span id="stVal">0</span></label>
 </div>
 <script>
 const canvas = document.getElementById('c');
@@ -59,16 +58,13 @@ const inputs = {
   letterColor: document.getElementById('letterColor'),
   threadWidth: document.getElementById('threadWidth'),
   letterSize: document.getElementById('letterSize'),
-  stagger: document.getElementById('stagger'),
 };
 
 const twVal = document.getElementById('twVal');
 const lsVal = document.getElementById('lsVal');
-const stVal = document.getElementById('stVal');
 
 inputs.threadWidth.addEventListener('input', () => { twVal.textContent = inputs.threadWidth.value; });
 inputs.letterSize.addEventListener('input', () => { lsVal.textContent = inputs.letterSize.value; });
-inputs.stagger.addEventListener('input', () => { stVal.textContent = inputs.stagger.value; });
 
 function getCfg() {
   return {
@@ -76,7 +72,7 @@ function getCfg() {
     lCol: inputs.letterColor.value || '#e0e0e0',
     tW: parseFloat(inputs.threadWidth.value) || 2.5,
     lSz: parseFloat(inputs.letterSize.value) || 42,
-    stg: parseFloat(inputs.stagger.value) || 0,
+    stg: 0.08,
   };
 }
 
@@ -419,6 +415,22 @@ function draw(ts) {
   if (stitchProg >= 1 && alpha > 0) {
     const endPt = getZigzagPoint(1);
     drawSafetyPin(ctx, endPt, alpha);
+  }
+
+  // Thread trailing from zigzag end to finished letters
+  if (stitchProg > 0 && alpha > 0) {
+    const zigEnd = getZigzagPoint(1);
+    for (const d of letterData) {
+      if (d.raw >= 1 && alpha > 0) {
+        ctx.globalAlpha = alpha * 0.5;
+        ctx.strokeStyle = cfg.tCol;
+        ctx.lineWidth = cfg.tW * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(zigEnd.x, zigEnd.y);
+        ctx.lineTo(d.drawX, d.drawY);
+        ctx.stroke();
+      }
+    }
   }
 
   ctx.restore();
