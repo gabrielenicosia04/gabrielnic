@@ -86,12 +86,11 @@ function drawBackground(ctx_, W_, H_) {
 }
 
 function drawFabric(ctx_, W_, H_) {
-  const cx = W_ / 2;
   const cy = H_ / 2;
   const fw = W_ * 0.75;
   const fh = H_ * 0.80;
-  const l = cx - fw/2;
-  const r = cx + fw/2;
+  const l = W_ / 2 - fw / 2;
+  const r = l + fw;
   const t = cy - fh/2;
   const b = cy + fh/2;
 
@@ -343,10 +342,10 @@ function draw(ts) {
     drawSafetyPin(ctx, endPt, alpha);
   }
 
-  // Imaginary line at the split point
+  // Imaginary line at the fabric's left edge
   if (alpha > 0) {
     ctx.save();
-    ctx.globalAlpha = 0.15 * alpha;
+    ctx.globalAlpha = 0.2 * alpha;
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 4]);
