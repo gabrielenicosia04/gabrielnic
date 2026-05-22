@@ -90,14 +90,29 @@ function drawFabric(ctx_, W_, H_) {
   const cy = H_ / 2;
   const fw = W_ * 0.75;
   const fh = H_ * 0.80;
+  const l = cx - fw/2;
+  const r = cx + fw/2;
+  const t = cy - fh/2;
+  const b = cy + fh/2;
 
   const cloth = new Path2D();
-  cloth.rect(cx - fw/2, cy - fh/2, fw, fh);
-
-
+  cloth.moveTo(l, t);
+  for (let x = l; x <= r; x += 1) {
+    cloth.lineTo(x, t + Math.sin((x - l) * 0.03) * 6);
+  }
+  for (let y = t; y <= b; y += 1) {
+    cloth.lineTo(r + Math.sin((y - t) * 0.025) * 4, y);
+  }
+  for (let x = r; x >= l; x -= 1) {
+    cloth.lineTo(x, b + Math.sin((x - l) * 0.035 + 2) * 5);
+  }
+  for (let y = b; y >= t; y -= 1) {
+    cloth.lineTo(l + Math.sin((y - t) * 0.02 + 1) * 3, y);
+  }
+  cloth.closePath();
 
   ctx_.save();
-  ctx_.shadowColor = 'rgba(0,0,0,0.1)';
+  ctx_.shadowColor = 'rgba(0,0,0,0.12)';
   ctx_.shadowBlur = 30;
   ctx_.shadowOffsetY = 6;
   ctx_.fillStyle = '#2a3a5c';
