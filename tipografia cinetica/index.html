@@ -184,7 +184,7 @@ function drawLetter(ctx_, char, x, y, size, color, angle, alpha, mode) {
   ctx_.save();
   ctx_.translate(x, y);
   ctx_.rotate(angle);
-  ctx_.font = `bold ${size}px 'Bad Script', cursive`;
+  ctx_.font = `900 ${size}px 'Bad Script', cursive`;
   ctx_.textAlign = 'center';
   ctx_.textBaseline = 'middle';
   if (mode === 'fold') {
@@ -198,6 +198,14 @@ function drawLetter(ctx_, char, x, y, size, color, angle, alpha, mode) {
     ctx_.fillStyle = color;
     ctx_.shadowColor = 'rgba(0,0,0,0.15)';
     ctx_.shadowBlur = 3;
+    ctx_.fillText(char, 0, 0);
+    ctx_.lineWidth = size * 0.07;
+    ctx_.strokeStyle = color;
+    ctx_.globalAlpha = alpha * 0.6;
+    ctx_.strokeText(char, 0, 0);
+    ctx_.shadowBlur = 0;
+    ctx_.restore();
+    return;
   }
   ctx_.fillText(char, 0, 0);
   ctx_.restore();
