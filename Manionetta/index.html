@@ -112,8 +112,12 @@
     const THRESHOLD = 40;
     const BOTH_HANDS_THRESHOLD = 60;
     const prevPinchState = {};
+    const lastSpawnTime = {};
+    const SPAWN_COOLDOWN = 500;
     let bothThumbsWasPinching = false;
     let bothPinkiesWasPinching = false;
+    let lastBothThumbsTime = 0;
+    let lastBothPinkiesTime = 0;
 
     function resizeCanvas() {
       canvasEl.width = window.innerWidth;
@@ -228,6 +232,12 @@
 
           for (const hand of hands) {
             const lm = hand.keypoints.map(kp => [1 - kp.x / videoEl.videoWidth, kp.y / videoEl.videoHeight]);
+            const wrist = lm[0];
+            const palm = lm[9];
+            const hdx = (wrist[0] - palm[0]) * canvasEl.width;
+            const hdy = (wrist[1] - palm[1]) * canvasEl.height;
+            const handSize = Math.sqrt(hdx * hdx + hdy * hdy);
+            if (handSize < 80) continue;
             drawConnections(lm, CONNECTIONS);
             drawLandmarks(lm);
 
@@ -249,6 +259,7 @@
             const fingertips = [8, 12, 16, 20];
             let closestFinger = null;
             let closestDist = Infinity;
+            let secondClosestDist = Infinity;
 
             for (const idx of fingertips) {
               const tip = lm[idx];
@@ -256,23 +267,29 @@
               const dy = (tip[1] - thumb[1]) * canvasEl.height;
               const dist = Math.sqrt(dx * dx + dy * dy);
               if (dist < closestDist) {
+                secondClosestDist = closestDist;
                 closestDist = dist;
                 closestFinger = idx;
+              } else if (dist < secondClosestDist) {
+                secondClosestDist = dist;
               }
             }
 
-            const wrist = lm[0];
-            const palm = lm[9];
-            const hdx = (wrist[0] - palm[0]) * canvasEl.width;
-            const hdy = (wrist[1] - palm[1]) * canvasEl.height;
-            const handSize = Math.sqrt(hdx * hdx + hdy * hdy);
-            const isPinching = closestDist < handSize * 0.2;
+            if (hand.score < 0.7) continue;
+            const dynamicThreshold = Math.max(handSize * 0.12, 10);
+            const isPinching = closestDist < dynamicThreshold && secondClosestDist > closestDist * 3;
             const prevFinger = prevPinchState[handId];
 
             if (isPinching) {
               if (prevFinger === undefined || prevFinger !== closestFinger) {
                 const type = FINGER_MAP[closestFinger];
-                if (type) spawnShape(type);
+                if (type) {
+                  const now = Date.now();
+                  if (!lastSpawnTime[handId] || now - lastSpawnTime[handId] > SPAWN_COOLDOWN) {
+                    spawnShape(type);
+                    lastSpawnTime[handId] = now;
+                  }
+                }
               }
               prevPinchState[handId] = closestFinger;
             } else {
@@ -313,10 +330,14 @@
 
             if (dt < BOTH_HANDS_THRESHOLD) {
               if (!bothThumbsWasPinching) {
-                for (const shape of shapes) {
-                  if (Math.abs(mx4 - shape.x) < shape.size && Math.abs(my4 - shape.y) < shape.size) {
-                    shape.size *= 1.3;
-                    break;
+                const now = Date.now();
+                if (now - lastBothThumbsTime > 600) {
+                  for (const shape of shapes) {
+                    if (Math.abs(mx4 - shape.x) < shape.size && Math.abs(my4 - shape.y) < shape.size) {
+                      shape.size *= 1.3;
+                      lastBothThumbsTime = now;
+                      break;
+                    }
                   }
                 }
               }
@@ -327,10 +348,14 @@
 
             if (dp < BOTH_HANDS_THRESHOLD) {
               if (!bothPinkiesWasPinching) {
-                for (const shape of shapes) {
-                  if (Math.abs(mx20 - shape.x) < shape.size && Math.abs(my20 - shape.y) < shape.size) {
-                    shape.size = Math.max(20, shape.size * 0.7);
-                    break;
+                const now = Date.now();
+                if (now - lastBothPinkiesTime > 600) {
+                  for (const shape of shapes) {
+                    if (Math.abs(mx20 - shape.x) < shape.size && Math.abs(my20 - shape.y) < shape.size) {
+                      shape.size = Math.max(20, shape.size * 0.7);
+                      lastBothPinkiesTime = now;
+                      break;
+                    }
                   }
                 }
               }
@@ -369,7 +394,7 @@
             runtime: 'mediapipe',
             solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
             modelType: 'full',
-            maxHands: 4,
+            maxHands: 2,
           }
         );
 
