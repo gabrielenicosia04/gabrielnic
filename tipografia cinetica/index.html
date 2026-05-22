@@ -379,6 +379,7 @@ function draw(ts) {
       const raw = (ct - stg * i) / letterTravelTime;
       const prog = clamp(raw, 0, 1);
       if (raw < 0 || raw >= 1) continue;
+      if (prog > threadProg) continue;
       const segIdx = Math.floor(prog * totalSegs);
       const segStart = zigzagVertex(segIdx);
       const letterPt = getZigzagPoint(prog);
