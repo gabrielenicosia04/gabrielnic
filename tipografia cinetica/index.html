@@ -354,13 +354,13 @@ function draw(ts) {
     }
   }
 
-  // Draw short thread trail from S forward to next vertex
+  // Draw single thread segment from previous vertex to S
   if (stitchProg > 0 && alpha > 0) {
     const totalSegs = NUM_STITCHES * 2;
     const sProg = threadProg;
-    const segIdx = Math.min(Math.floor(sProg * totalSegs) + 1, totalSegs);
-    const p1 = getZigzagPoint(sProg);
-    const p2 = zigzagVertex(segIdx);
+    const segIdx = Math.floor(sProg * totalSegs);
+    const p1 = zigzagVertex(segIdx);
+    const p2 = getZigzagPoint(sProg);
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = cfg.tCol;
     ctx.lineWidth = cfg.tW;
