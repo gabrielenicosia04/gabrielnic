@@ -333,20 +333,6 @@ function draw(ts) {
     }
   }
 
-  // Imaginary line at the center fold
-  if (alpha > 0) {
-    ctx.save();
-    ctx.globalAlpha = 0.15 * alpha;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(W / 2, H * 0.05);
-    ctx.lineTo(W / 2, H * 0.78);
-    ctx.stroke();
-    ctx.restore();
-  }
-
   let maxProg = 0;
   for (let i = 0; i < LETTERS.length; i++) {
     const raw = (ct - stg * i) / letterTravelTime;
