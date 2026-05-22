@@ -304,8 +304,13 @@ function draw(ts) {
     let drawX, drawY, mode;
     if (raw >= 1) {
       const sinceDone = raw - 1;
-      if (sinceDone < 0.3) {
-        const tr = sinceDone / 0.3;
+      const gatherTime = 0.4;
+      const spreadTime = 0.5;
+      if (sinceDone < gatherTime) {
+        drawX = endPt.x;
+        drawY = endPt.y;
+      } else if (sinceDone < gatherTime + spreadTime) {
+        const tr = (sinceDone - gatherTime) / spreadTime;
         const ease = tr * tr * (3 - 2 * tr);
         drawX = lerp(endPt.x, fx, ease);
         drawY = lerp(endPt.y, fy, ease);
@@ -429,23 +434,35 @@ function draw(ts) {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.globalAlpha = alpha;
-      // dark shadow for readability on white
-      ctx.fillStyle = '#222';
-      ctx.shadowColor = 'rgba(0,0,0,0.3)';
-      ctx.shadowBlur = 4;
+      ctx.strokeStyle = '#222';
+      ctx.lineWidth = cfg.lSz * 0.12;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(ch, 0, 0);
+      ctx.fillStyle = cfg.lCol;
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
+      ctx.shadowBlur = 6;
       ctx.fillText(ch, 0, 0);
-      // thread trailing from zigzag end to this letter
-      const zigEnd = getZigzagPoint(1);
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = cfg.tCol;
-      ctx.lineWidth = cfg.tW * 0.5;
-      ctx.globalAlpha = alpha * 0.4;
-      ctx.beginPath();
-      ctx.moveTo(zigEnd.x, zigEnd.y);
-      ctx.lineTo(d.drawX, d.drawY);
-      ctx.stroke();
       ctx.restore();
     }
+  }
+
+  // Thread trailing from zigzag end to word center
+  if (maxProg >= 1 && alpha > 0) {
+    const zigEnd = getZigzagPoint(1);
+    const centerX = letterData.reduce((s, d) => s + d.drawX, 0) / letterData.length;
+    const centerY = letterData.reduce((s, d) => s + d.drawY, 0) / letterData.length;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.6;
+    ctx.strokeStyle = cfg.tCol;
+    ctx.lineWidth = cfg.tW;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = cfg.tCol;
+    ctx.shadowBlur = 3;
+    ctx.beginPath();
+    ctx.moveTo(zigEnd.x, zigEnd.y);
+    ctx.lineTo(centerX, centerY);
+    ctx.stroke();
+    ctx.restore();
   }
 
   } catch (e) { console.error(e); }
