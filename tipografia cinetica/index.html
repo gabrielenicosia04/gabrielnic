@@ -354,44 +354,24 @@ function draw(ts) {
     }
   }
 
-  // Draw thread segments completed by ALL letters
+  // Draw short thread trail right behind S
   if (stitchProg > 0 && alpha > 0) {
     const totalSegs = NUM_STITCHES * 2;
-    const segs = Math.floor(threadProg * totalSegs);
-    for (let i = 0; i < segs; i++) {
-      const p1 = zigzagVertex(i);
-      const p2 = zigzagVertex(i + 1);
-      ctx.globalAlpha = alpha;
-      ctx.strokeStyle = cfg.tCol;
-      ctx.lineWidth = cfg.tW;
-      ctx.lineCap = 'round';
-      ctx.shadowColor = cfg.tCol;
-      ctx.shadowBlur = 2;
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
-    }
+    const sProg = threadProg;
+    const segIdx = Math.floor(sProg * totalSegs);
+    const p1 = zigzagVertex(segIdx);
+    const p2 = getZigzagPoint(sProg);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = cfg.tCol;
+    ctx.lineWidth = cfg.tW;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = cfg.tCol;
+    ctx.shadowBlur = 2;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.stroke();
     ctx.shadowBlur = 0;
-
-    // For each visible letter, draw the trail right behind it
-    for (let i = 0; i < LETTERS.length; i++) {
-      const raw = (ct - stg * i) / letterTravelTime;
-      const prog = clamp(raw, 0, 1);
-      if (raw < 0 || raw >= 1) continue;
-      if (prog > threadProg) continue;
-      const segIdx = Math.floor(prog * totalSegs);
-      const segStart = zigzagVertex(segIdx);
-      const letterPt = getZigzagPoint(prog);
-      ctx.globalAlpha = alpha;
-      ctx.strokeStyle = cfg.tCol;
-      ctx.lineWidth = cfg.tW;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(segStart.x, segStart.y);
-      ctx.lineTo(letterPt.x, letterPt.y);
-      ctx.stroke();
-    }
 
     // Needle hole dots at completed segments
     ctx.shadowBlur = 0;
