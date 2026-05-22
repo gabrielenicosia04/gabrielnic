@@ -282,8 +282,8 @@ function draw(ts) {
   const stg = cfg.stg;
   const letterTravelTime = 20;
   const travelTime = stg * (LETTERS.length - 1) + letterTravelTime;
-  const holdTime = 2.0;
-  const fadeTime = 0.8;
+  const holdTime = 12.0;
+  const fadeTime = 1.5;
   const cycleLen = travelTime + holdTime + fadeTime;
   const t = ((ts - startTime) / 1000);
   const ct = t % cycleLen;
