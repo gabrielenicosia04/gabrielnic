@@ -366,14 +366,29 @@ function draw(ts) {
     for (let i = 0; i < segs; i++) {
       const p1 = zigzagVertex(i);
       const p2 = zigzagVertex(i + 1);
+      // Curl amount: only recent segments (last ~3) are curly
+      const curl = Math.max(0, 1 - (segs - i) / 3) * 6;
       ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
+      if (curl > 0.5) {
+        const mx = (p1.x + p2.x) / 2;
+        const my = (p1.y + p2.y) / 2;
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const px = -dy / len;
+        const py = dx / len;
+        const off = curl * len * 0.12;
+        ctx.moveTo(p1.x, p1.y);
+        ctx.quadraticCurveTo(mx + px * off, my + py * off, p2.x, p2.y);
+      } else {
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+      }
       ctx.stroke();
     }
     ctx.shadowBlur = 0;
 
-    // Partial segment from vertex to S
+    // Partial segment from vertex to S — max curl (currently being sewn)
     if (segs < totalSegs) {
       const p1 = zigzagVertex(segs);
       const p2 = getZigzagPoint(threadProg);
@@ -382,7 +397,13 @@ function draw(ts) {
       ctx.lineWidth = cfg.tW;
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
+      const len = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2) || 1;
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const px = -dy / len, py = dx / len;
+      const off = 6 * len * 0.15;
+      const mx = (p1.x + p2.x) / 2;
+      const my = (p1.y + p2.y) / 2;
+      ctx.quadraticCurveTo(mx + px * off, my + py * off, p2.x, p2.y);
       ctx.stroke();
     }
 
