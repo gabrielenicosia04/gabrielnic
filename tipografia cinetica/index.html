@@ -408,11 +408,6 @@ function draw(ts) {
       drawX = pt.x;
       drawY = pt.y;
       drawAngle = 0;
-      const mode = zigzagSide(prog);
-      let la = alpha;
-      if (mode === 'right') la = alpha * 0.7;
-      else if (mode === 'fold') la = alpha * 0.3;
-      drawLetter(ctx, LETTERS[i], drawX, drawY, cfg.lSz, cfg.lCol, drawAngle, la, 'none');
     }
     if (raw >= 1) {
       drawLetter(ctx, LETTERS[i], drawX, drawY, cfg.lSz, cfg.lCol, drawAngle, alpha, 'none');
