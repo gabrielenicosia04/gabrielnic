@@ -28,11 +28,6 @@
     height: 100%;
   }
   .hidden-svg { visibility: hidden; position: absolute; pointer-events: none; }
-  #back {
-    position: fixed; top: 10px; left: 10px; z-index: 100;
-    color: #0000e1; font-size: 48px; font-family: serif;
-    text-decoration: none; line-height: 1;
-  }
   #controls {
     position: fixed;
     bottom: 30px;
@@ -66,7 +61,6 @@
 </style>
 </head>
 <body>
-  <a id="back" href="../index.html">←</a>
   <div id="status">Premi "Avvia" per attivare il microfono</div>
   <div id="volume-bar" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:200px;height:20px;background:#fff3;border-radius:10px;overflow:hidden;z-index:10;">
     <div id="volume-fill" style="width:0%;height:100%;background:#fff;border-radius:10px;transition:width 0.05s;"></div>
