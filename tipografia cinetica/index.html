@@ -304,13 +304,9 @@ function draw(ts) {
     let drawX, drawY, mode;
     if (raw >= 1) {
       const sinceDone = raw - 1;
-      const gatherTime = 0.4;
-      const spreadTime = 0.5;
-      if (sinceDone < gatherTime) {
-        drawX = endPt.x;
-        drawY = endPt.y;
-      } else if (sinceDone < gatherTime + spreadTime) {
-        const tr = (sinceDone - gatherTime) / spreadTime;
+      const spreadTime = 0.8;
+      if (sinceDone < spreadTime) {
+        const tr = sinceDone / spreadTime;
         const ease = tr * tr * (3 - 2 * tr);
         drawX = lerp(endPt.x, fx, ease);
         drawY = lerp(endPt.y, fy, ease);
