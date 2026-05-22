@@ -354,24 +354,38 @@ function draw(ts) {
     }
   }
 
-  // Draw single thread segment from previous vertex to S
+  // Draw zigzag thread that accumulates as S moves
   if (stitchProg > 0 && alpha > 0) {
     const totalSegs = NUM_STITCHES * 2;
-    const sProg = threadProg;
-    const segIdx = Math.floor(sProg * totalSegs);
-    const p1 = zigzagVertex(segIdx);
-    const p2 = getZigzagPoint(sProg);
+    const segs = Math.floor(threadProg * totalSegs);
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = cfg.tCol;
     ctx.lineWidth = cfg.tW;
     ctx.lineCap = 'round';
     ctx.shadowColor = cfg.tCol;
     ctx.shadowBlur = 2;
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.stroke();
+    for (let i = 0; i < segs; i++) {
+      const p1 = zigzagVertex(i);
+      const p2 = zigzagVertex(i + 1);
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
     ctx.shadowBlur = 0;
+
+    // Partial segment from vertex to S
+    if (segs < totalSegs) {
+      const p1 = zigzagVertex(segs);
+      const p2 = getZigzagPoint(threadProg);
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = cfg.tCol;
+      ctx.lineWidth = cfg.tW;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
 
     // Needle hole dots at completed segments
     ctx.shadowBlur = 0;
