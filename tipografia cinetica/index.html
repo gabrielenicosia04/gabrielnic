@@ -321,7 +321,10 @@ function draw(ts) {
   // Letters during zigzag that are LEFT of center — drawn UNDER fabric
   for (const d of letterData) {
     if (d.raw < 1 && d.drawX < W / 2) {
-      drawLetter(ctx, LETTERS[d.i], d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
+      const segIdx = Math.floor(d.raw * NUM_STITCHES * 2);
+      const swap = segIdx % 2 !== 0;
+      const ch = swap ? LETTERS[LETTERS.length - 1 - d.i] : LETTERS[d.i];
+      drawLetter(ctx, ch, d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
     }
   }
 
@@ -342,7 +345,10 @@ function draw(ts) {
   // Letters during zigzag that are RIGHT of center + all after zigzag — drawn ON TOP
   for (const d of letterData) {
     if (d.raw >= 1 || d.drawX >= W / 2) {
-      drawLetter(ctx, LETTERS[d.i], d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
+      const segIdx = Math.floor(d.raw * NUM_STITCHES * 2);
+      const swap = d.raw < 1 && segIdx % 2 === 0;
+      const ch = swap ? LETTERS[LETTERS.length - 1 - d.i] : LETTERS[d.i];
+      drawLetter(ctx, ch, d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
     }
   }
 
