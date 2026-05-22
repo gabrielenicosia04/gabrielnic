@@ -333,15 +333,75 @@ function draw(ts) {
     }
   }
 
-  let maxProg = 0;
+  let minProg = 1, maxProg = 0;
   for (let i = 0; i < LETTERS.length; i++) {
     const raw = (ct - stg * i) / letterTravelTime;
-    if (raw > maxProg) maxProg = raw;
+    const prog = clamp(raw, 0, 1);
+    if (raw >= 0 && raw < 1) {
+      if (prog < minProg) minProg = prog;
+      if (prog > maxProg) maxProg = prog;
+    }
   }
   const stitchProg = Math.min(1, maxProg);
 
+  // Draw thread segments completed by ALL letters
   if (stitchProg > 0 && alpha > 0) {
-    drawStitches(ctx, stitchProg, cfg.tCol, cfg.tW, alpha);
+    ctx.save();
+    const totalSegs = NUM_STITCHES * 2;
+    const segs = Math.floor(minProg * totalSegs);
+    for (let i = 0; i < segs; i++) {
+      const p1 = zigzagVertex(i);
+      const p2 = zigzagVertex(i + 1);
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = cfg.tCol;
+      ctx.lineWidth = cfg.tW;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = cfg.tCol;
+      ctx.shadowBlur = 2;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    // For each visible letter, draw the trail right behind it
+    for (let i = 0; i < LETTERS.length; i++) {
+      const raw = (ct - stg * i) / letterTravelTime;
+      const prog = clamp(raw, 0, 1);
+      if (raw < 0 || raw >= 1) continue;
+      const segIdx = Math.floor(prog * totalSegs);
+      const segStart = zigzagVertex(segIdx);
+      const letterPt = getZigzagPoint(prog);
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = cfg.tCol;
+      ctx.lineWidth = cfg.tW;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(segStart.x, segStart.y);
+      ctx.lineTo(letterPt.x, letterPt.y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Needle hole dots at completed segments
+    ctx.save();
+    ctx.shadowBlur = 0;
+    for (let i = 0; i < NUM_STITCHES + 1; i++) {
+      const t = (i + 0.001) / (NUM_STITCHES * 2);
+      if (t > minProg) break;
+      const pt = zigzagVertex(i * 2);
+      ctx.globalAlpha = alpha * 0.7;
+      ctx.fillStyle = 'rgba(30,20,10,0.6)';
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, cfg.tW * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, cfg.tW * 0.15, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(10,5,0,0.8)';
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   if (stitchProg >= 1 && alpha > 0) {
