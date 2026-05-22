@@ -285,7 +285,47 @@ function draw(ts) {
 
   ctx.clearRect(0, 0, W, H);
   drawBackground(ctx, W, H);
+
+  // Right side letters (L, L, A) — drawn under the fabric
+  for (let i = 3; i < LETTERS.length; i++) {
+    const raw = (ct - stg * i) / letterTravelTime;
+    if (raw < 1) continue;
+    const fx = W / 2 + (i - 2.5) * cfg.lSz * 0.6;
+    const fy = H * 0.88;
+    drawLetter(ctx, LETTERS[i], fx, fy, cfg.lSz, cfg.lCol, 0, alpha, 'none');
+  }
+
   drawFabric(ctx, W, H);
+
+  // Left side letters (S, P, I) — drawn on top of the fabric
+  for (let i = 0; i < 3; i++) {
+    const raw = (ct - stg * i) / letterTravelTime;
+    const prog = clamp(raw, 0, 1);
+    if (raw < 0) continue;
+    const endPt = getZigzagPoint(1);
+    const fx = W / 2 + (i - 2.5) * cfg.lSz * 0.6;
+    const fy = H * 0.88;
+    let drawX, drawY;
+    if (raw >= 1) {
+      const sinceDone = raw - 1;
+      if (sinceDone < 0.3) {
+        const tr = sinceDone / 0.3;
+        const ease = tr * tr * (3 - 2 * tr);
+        drawX = lerp(endPt.x, fx, ease);
+        drawY = lerp(endPt.y, fy, ease);
+      } else {
+        drawX = fx;
+        drawY = fy;
+      }
+    } else {
+      const pt = getZigzagPoint(prog);
+      drawX = pt.x;
+      drawY = pt.y;
+    }
+    if (raw >= 1) {
+      drawLetter(ctx, LETTERS[i], drawX, drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
+    }
+  }
 
   let maxProg = 0;
   for (let i = 0; i < LETTERS.length; i++) {
@@ -303,36 +343,18 @@ function draw(ts) {
     drawSafetyPin(ctx, endPt, alpha);
   }
 
-  for (let i = 0; i < LETTERS.length; i++) {
-    const raw = (ct - stg * i) / letterTravelTime;
-    const prog = clamp(raw, 0, 1);
-    if (raw < 0) continue;
-
-    let drawX, drawY, drawAngle;
-    if (raw >= 1) {
-      const sinceDone = raw - 1;
-      const endPt = getZigzagPoint(1);
-      const fx = W / 2 + (i - 2.5) * cfg.lSz * 0.6;
-      const fy = H * 0.88;
-      if (sinceDone < 0.3) {
-        const tr = sinceDone / 0.3;
-        const ease = tr * tr * (3 - 2 * tr);
-        drawX = lerp(endPt.x, fx, ease);
-        drawY = lerp(endPt.y, fy, ease);
-      } else {
-        drawX = fx;
-        drawY = fy;
-      }
-      drawAngle = 0;
-    } else {
-      const pt = getZigzagPoint(prog);
-      drawX = pt.x;
-      drawY = pt.y;
-      drawAngle = 0;
-    }
-    if (raw >= 1) {
-      drawLetter(ctx, LETTERS[i], drawX, drawY, cfg.lSz, cfg.lCol, drawAngle, alpha, 'none');
-    }
+  // Imaginary line at the split point
+  if (alpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.15 * alpha;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(W / 2, H * 0.78);
+    ctx.lineTo(W / 2, H * 0.96);
+    ctx.stroke();
+    ctx.restore();
   }
 
   } catch (e) { console.error(e); }
