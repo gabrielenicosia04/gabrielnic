@@ -1,3 +1,23 @@
+# Calamaro Sound-Responsive Animation Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Single HTML file that morphs two squid SVGs linearly based on microphone noise level.
+
+**Architecture:** Two hidden source SVGs (quiet + moving), one visible SVG rendering interpolated paths. Web Audio API for mic input drives morphing and shake effects. 60fps via requestAnimationFrame.
+
+**Tech Stack:** Vanilla JS, SVG DOM API, Web Audio API
+
+---
+
+### Task 1: HTML Shell with Embedded SVGs
+
+**Files:**
+- Create: `index.html`
+
+- [ ] **Step 1: Create index.html with SVG sources and structure**
+
+```html
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -27,7 +47,7 @@
     width: 100%;
     height: 100%;
   }
-  .hidden-svg { visibility: hidden; position: absolute; pointer-events: none; }
+  .hidden-svg { display: none; }
   #controls {
     position: fixed;
     bottom: 30px;
@@ -62,9 +82,6 @@
 </head>
 <body>
   <div id="status">Premi "Avvia" per attivare il microfono</div>
-  <div id="volume-bar" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:200px;height:20px;background:#fff3;border-radius:10px;overflow:hidden;z-index:10;">
-    <div id="volume-fill" style="width:0%;height:100%;background:#fff;border-radius:10px;transition:width 0.05s;"></div>
-  </div>
 
   <div id="container">
     <svg id="output-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 595.28 841.89">
@@ -114,6 +131,37 @@
   </svg>
 
   <script>
+    // ... code in subsequent tasks
+  </script>
+</body>
+</html>
+```
+
+- [ ] **Step 2: Verify file created**
+
+Run: `ls -la index.html`
+Expected: file exists, non-empty
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: initial html shell with embedded svgs"
+```
+
+---
+
+### Task 2: Audio Capture and RMS Computation
+
+**Files:**
+- Modify: `index.html` (add JS at the bottom, before closing `</body>`)
+
+- [ ] **Step 1: Add audio capture JS**
+
+Replace the `<script>...</script>` placeholder with:
+
+```html
+<script>
 const startBtn = document.getElementById('startBtn');
 const statusEl = document.getElementById('status');
 const container = document.getElementById('container');
@@ -152,58 +200,39 @@ function getVolume() {
     sum += data[i] * data[i];
   }
   const rms = Math.sqrt(sum / data.length);
-  const normalized = Math.min(1, rms / 64);
-  smoothVolume = smoothVolume * 0.5 + normalized * 0.5;
+  const normalized = Math.min(1, rms / 128);
+  smoothVolume = smoothVolume * 0.7 + normalized * 0.3;
   return smoothVolume;
 }
 
-let frame = 0;
+startBtn.addEventListener('click', startMicrophone);
+</script>
+```
 
-function updateSquid(t) {
-  const outputMorph = document.getElementById('output-morph');
-  const outputOcchi = document.getElementById('output-occhi');
-  frame++;
+- [ ] **Step 2: Open in browser and test mic button**
 
-  const len = quietPts.length;
-  const displaced = quietPts.map((p, i) => {
-    const weight = (i / len) * (i / len);
-    const wave = Math.sin(frame * 0.04 + i * 0.2);
-    const dx = wave * t * weight * 40;
-    const dy = Math.sin(frame * 0.06 + i * 0.15 + 1) * t * weight * 30;
-    return { x: p.x + dx, y: p.y + dy };
-  });
-  outputMorph.innerHTML = `<path d="${pointsToPath(displaced)}" fill="#000"/>`;
+Open `index.html` in browser, click "Avvia Microfono".
+Expected: browser asks for mic permission, button changes to "In ascolto...", status shows "Microfono attivo"
 
-  const existingEyes = outputOcchi.querySelectorAll('path');
-  quietEyePoints.forEach((qPts, i) => {
-    const d = pointsToPath(qPts) + 'Z';
-    if (existingEyes[i]) {
-      existingEyes[i].setAttribute('d', d);
-    } else {
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', d);
-      path.setAttribute('fill', '#000');
-      outputOcchi.appendChild(path);
-    }
-  });
-}
+- [ ] **Step 3: Commit**
 
-function animate() {
-  if (!isRunning) return;
-  const volume = getVolume();
-  document.getElementById('volume-fill').style.width = (volume * 100) + '%';
-  updateSquid(volume);
+```bash
+git add index.html
+git commit -m "feat: add audio capture and rms computation"
+```
 
-  const shakeX = (Math.random() - 0.5) * 2 * volume * 8;
-  const shakeY = (Math.random() - 0.5) * 2 * volume * 8;
-  const rot = (Math.random() - 0.5) * 2 * volume * 2;
-  const scale = 1 + volume * 0.03;
-  const outputSvg = document.getElementById('output-svg');
-  outputSvg.style.transform = `translate(${shakeX}px, ${shakeY}px) rotate(${rot}deg) scale(${scale})`;
+---
 
-  requestAnimationFrame(animate);
-}
+### Task 3: Path Sampling and Interpolation
 
+**Files:**
+- Modify: `index.html` (add JS functions inside the `<script>` tag)
+
+- [ ] **Step 1: Add path sampling and interpolation functions**
+
+Add these functions before `startBtn.addEventListener`:
+
+```js
 function samplePath(pathEl, numPoints) {
   const len = pathEl.getTotalLength();
   const pts = [];
@@ -229,7 +258,55 @@ function interpolatePoints(ptsA, ptsB, t) {
 function pointsToPath(pts) {
   return 'M' + pts.map(p => `${p.x},${p.y}`).join('L');
 }
+```
 
+- [ ] **Step 2: Cache sampled paths on startup**
+
+Add after `startBtn.addEventListener`:
+
+```js
+let quietPts = null;
+let movingPts = null;
+const NUM_POINTS = 200;
+let quietEyesPaths = [];
+let movingEyesPaths = [];
+
+function cachePaths() {
+  const quietTenta = document.querySelector('#quiet-tentacoli path');
+  const movingPenne = document.querySelector('#moving-penne path');
+  quietPts = samplePath(quietTenta, NUM_POINTS);
+  movingPts = samplePath(movingPenne, NUM_POINTS);
+
+  document.querySelectorAll('#quiet-occhi path').forEach(el => {
+    quietEyesPaths.push(el.getAttribute('d'));
+  });
+  document.querySelectorAll('#moving-occhi path').forEach(el => {
+    movingEyesPaths.push(el.getAttribute('d'));
+  });
+}
+
+cachePaths();
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: add path sampling and interpolation functions"
+```
+
+---
+
+### Task 4: Render Loop with Morphing and Shake
+
+**Files:**
+- Modify: `index.html` (add `animate()` and `updateSquid()` functions, extend `cachePaths()`)
+
+- [ ] **Step 1: Extend cachePaths to also sample eye paths**
+
+Replace the existing `quietPts`/`movingPts` declarations and `cachePaths` function. Add the new declarations before the function, and re-call `cachePaths()` after:
+
+```js
 const EYE_NUM_POINTS = 100;
 let quietPts = null;
 let movingPts = null;
@@ -252,8 +329,102 @@ function cachePaths() {
 }
 
 cachePaths();
+```
 
-startBtn.addEventListener('click', startMicrophone);
-  </script>
-</body>
-</html>
+- [ ] **Step 2: Add updateSquid() and animate()**
+
+Add before `startBtn.addEventListener`:
+
+```js
+function updateSquid(t) {
+  const outputMorph = document.getElementById('output-morph');
+  const outputOcchi = document.getElementById('output-occhi');
+
+  const interpTenta = interpolatePoints(quietPts, movingPts, t);
+  outputMorph.innerHTML = `<path d="${pointsToPath(interpTenta)}" fill="#000"/>`;
+
+  const existingEyes = outputOcchi.querySelectorAll('path');
+  quietEyePoints.forEach((qPts, i) => {
+    const mPts = movingEyePoints[i];
+    const interp = interpolatePoints(qPts, mPts, t);
+    const d = pointsToPath(interp) + 'Z';
+    if (existingEyes[i]) {
+      existingEyes[i].setAttribute('d', d);
+    } else {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', '#000');
+      outputOcchi.appendChild(path);
+    }
+  });
+}
+
+function animate() {
+  if (!isRunning) return;
+  const volume = getVolume();
+  updateSquid(volume);
+
+  const shakeX = (Math.random() - 0.5) * 2 * volume * 8;
+  const shakeY = (Math.random() - 0.5) * 2 * volume * 8;
+  const rot = (Math.random() - 0.5) * 2 * volume * 2;
+  const scale = 1 + volume * 0.03;
+  const outputSvg = document.getElementById('output-svg');
+  outputSvg.style.transform = `translate(${shakeX}px, ${shakeY}px) rotate(${rot}deg) scale(${scale})`;
+
+  requestAnimationFrame(animate);
+}
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: add render loop with morphing and shake"
+```
+
+---
+
+### Task 5: Styling and Polish
+
+**Files:**
+- Modify: `index.html`
+
+- [ ] **Step 1: Add stroke styling to eyes and morph path**
+
+Eyes should be filled, tentacles should look like the original. Update `updateSquid`:
+
+In `updateSquid`, change the morph path creation:
+```js
+outputMorph.innerHTML = `<path d="${pointsToPath(interpTenta)}" fill="none" stroke="#e7401e" stroke-width="0"/>`;
+```
+
+Wait — the path needs a fill. The original tentacoli path uses fill. Let me think about what fill to use.
+
+Actually, looking at the original SVGs, the tentacoli and penne paths have no explicit `fill` attribute set (they're just `<path>` with only `d`). In the original SVG rendering, they would inherit some fill from the parent or default. Let me check... The original SVGs have no fill set on the path inside `tentacoli` and `penne`, so they'd be black by default.
+
+Let me update the morph path to have proper fill:
+```js
+outputMorph.innerHTML = `<path d="${pointsToPath(interpTenta)}" fill="#000"/>`;
+```
+
+And eyes:
+```js
+const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+path.setAttribute('d', d);
+path.setAttribute('fill', '#000');
+outputOcchi.appendChild(path);
+```
+
+Actually this is already done. Let me also add a nice background and make sure everything looks good.
+
+- [ ] **Step 2: Test in browser**
+
+Open `index.html`, click "Avvia Microfono", make noise.
+Expected: squid morphs between quiet and moving states based on volume, shakes with noise.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: finalize styling and polish"
+```
