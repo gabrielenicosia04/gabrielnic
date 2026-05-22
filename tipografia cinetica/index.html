@@ -125,7 +125,7 @@ let zigCx, zigTopY, zigH, zigW;
 function initZigzag() {
   zigCx = W / 2;
   zigTopY = H / 2 - H * 0.80 / 2;
-  zigH = H * 0.68;
+  zigH = H * 0.80;
   zigW = W * 0.18;
 }
 
@@ -292,7 +292,7 @@ function draw(ts) {
     const prog = clamp(raw, 0, 1);
     const endPt = getZigzagPoint(1);
     const fx = W / 2 - 80 + (i - 2.5) * cfg.lSz * 0.6;
-    const fy = H * 0.88;
+    const fy = H * 0.94;
     let drawX, drawY, mode;
     if (raw >= 1) {
       const sinceDone = raw - 1;
