@@ -81,7 +81,7 @@ function lerp(a, b, t) { return a + (b - a) * t; }
 function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
 
 function drawBackground(ctx_, W_, H_) {
-  ctx_.fillStyle = '#7a6a56';
+  ctx_.fillStyle = '#1a2538';
   ctx_.fillRect(0, 0, W_, H_);
   ctx_.strokeStyle = 'rgba(100,88,72,0.12)';
   ctx_.lineWidth = 0.6;
@@ -121,9 +121,9 @@ function drawFabric(ctx_, W_, H_) {
 
   ctx_.save();
   const baseGrad = ctx_.createLinearGradient(cx, cy - fh/2, cx, cy + fh/2);
-  baseGrad.addColorStop(0, '#a8bcd4');
-  baseGrad.addColorStop(0.5, '#9cb0c8');
-  baseGrad.addColorStop(1, '#8ca0b8');
+  baseGrad.addColorStop(0, '#2a3a5c');
+  baseGrad.addColorStop(0.5, '#1e2d4a');
+  baseGrad.addColorStop(1, '#152238');
   ctx_.fillStyle = baseGrad;
   ctx_.fill(cloth);
   ctx_.clip(cloth);
@@ -150,7 +150,7 @@ function drawFabric(ctx_, W_, H_) {
   ctx_.fillRect(cx, cy - fh/2, fw/2, fh);
   ctx_.restore();
 
-  ctx_.strokeStyle = 'rgba(80,70,55,0.15)';
+  ctx_.strokeStyle = 'rgba(20,30,50,0.3)';
   ctx_.lineWidth = 1.5;
   ctx_.beginPath();
   ctx_.moveTo(cx, cy - fh/2);
