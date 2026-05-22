@@ -3,118 +3,68 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SPILLA — Tipografia Cinetica</title>
+<title>SPILLA</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;font-family:Helvetica,Arial,sans-serif}
-canvas{display:block;width:100%;height:100%}
-#controls{
-  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);
-  border-radius:14px;padding:14px 20px;color:#fff;
-  display:flex;gap:14px;flex-wrap:wrap;justify-content:center;
-  align-items:center;z-index:10;border:1px solid rgba(255,255,255,0.12);
-  font-size:11px;max-width:95vw;transition:opacity 0.3s,transform 0.3s
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; background: #3a3028; overflow: hidden; font-family: Helvetica, Arial, sans-serif; }
+canvas { display: block; width: 100%; height: 100%; }
+#controls {
+  position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+  padding: 8px 16px; border-radius: 8px; display: flex; gap: 14px;
+  flex-wrap: wrap; justify-content: center; align-items: center;
+  font-size: 11px; color: #ccc; z-index: 10; user-select: none;
 }
-#controls.hidden{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(20px)}
-.ctrl-group{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:60px}
-.ctrl-group label{font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.5)}
-.ctrl-group input[type="range"]{width:72px;accent-color:#cc3344}
-.ctrl-group input[type="color"]{width:30px;height:22px;border:1px solid rgba(255,255,255,0.2);border-radius:3px;background:0;cursor:pointer;padding:0}
-.val{font-size:10px;color:rgba(255,255,255,0.4)}
-#toggleBtn{
-  position:fixed;bottom:20px;right:20px;z-index:11;
-  background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.15);
-  color:#fff;border-radius:50%;width:38px;height:38px;
-  font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  backdrop-filter:blur(4px);transition:background 0.2s;line-height:1
-}
-#toggleBtn:hover{background:rgba(0,0,0,0.9)}
+#controls label { display: flex; align-items: center; gap: 4px; }
+#controls input[type="range"] { width: 50px; }
+#controls input[type="color"] { width: 24px; height: 24px; border: none; padding: 0; cursor: pointer; }
 </style>
 </head>
 <body>
-<a href="../index.html" style="position:fixed;top:16px;left:16px;z-index:1000;color:#000;font-size:48px;text-decoration:none;font-family:serif;">&#8592;</a>
 <canvas id="c"></canvas>
-<button id="toggleBtn">&#9881;</button>
 <div id="controls">
-  <div class="ctrl-group">
-    <label>Velocit&agrave;</label>
-    <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1">
-    <span class="val" id="speedVal">1x</span>
-  </div>
-  <div class="ctrl-group">
-    <label>Colore filo</label>
-    <input type="color" id="threadColor" value="#cc3344">
-  </div>
-  <div class="ctrl-group">
-    <label>Colore lettere</label>
-    <input type="color" id="letterColor" value="#1a1a22">
-  </div>
-  <div class="ctrl-group">
-    <label>Spessore filo</label>
-    <input type="range" id="threadWidth" min="1" max="10" step="0.5" value="2.5">
-    <span class="val" id="threadWidthVal">2.5px</span>
-  </div>
-  <div class="ctrl-group">
-    <label>Dimensione lettere</label>
-    <input type="range" id="letterSize" min="10" max="60" step="1" value="22">
-    <span class="val" id="letterSizeVal">22px</span>
-  </div>
-  <div class="ctrl-group">
-    <label>Stagger</label>
-    <input type="range" id="stagger" min="0" max="0.3" step="0.01" value="0.02">
-    <span class="val" id="staggerVal">0.02s</span>
-  </div>
+  <label>Speed <input type="range" id="speed" min="0.1" max="5" step="0.1" value="1"></label>
+  <label>Thread <input type="color" id="threadColor" value="#cc3344"></label>
+  <label>Letters <input type="color" id="letterColor" value="#1a1a22"></label>
+  <label>Width <input type="range" id="threadWidth" min="0.5" max="6" step="0.1" value="2.5"></label>
+  <label>Size <input type="range" id="letterSize" min="10" max="50" step="1" value="22"></label>
+  <label>Stagger <input type="range" id="stagger" min="0" max="0.1" step="0.005" value="0.02"></label>
 </div>
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-let W, H;
+const LETTERS = ['S', 'P', 'I', 'L', 'L', 'A'];
 
-function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
 resize();
 window.addEventListener('resize', resize);
 
-const $ = id => document.getElementById(id);
 const inputs = {
-  speed: $('speed'), threadColor: $('threadColor'), letterColor: $('letterColor'),
-  threadWidth: $('threadWidth'), letterSize: $('letterSize'), stagger: $('stagger'),
-};
-const vals = {
-  speed: $('speedVal'), threadWidth: $('threadWidthVal'),
-  letterSize: $('letterSizeVal'), stagger: $('staggerVal'),
+  speed: document.getElementById('speed'),
+  threadColor: document.getElementById('threadColor'),
+  letterColor: document.getElementById('letterColor'),
+  threadWidth: document.getElementById('threadWidth'),
+  letterSize: document.getElementById('letterSize'),
+  stagger: document.getElementById('stagger'),
 };
 
-inputs.speed.addEventListener('input', () => vals.speed.textContent = parseFloat(inputs.speed.value).toFixed(1) + 'x');
-inputs.threadWidth.addEventListener('input', () => vals.threadWidth.textContent = inputs.threadWidth.value + 'px');
-inputs.letterSize.addEventListener('input', () => vals.letterSize.textContent = inputs.letterSize.value + 'px');
-inputs.stagger.addEventListener('input', () => vals.stagger.textContent = parseFloat(inputs.stagger.value).toFixed(2) + 's');
-$('toggleBtn').addEventListener('click', () => $('controls').classList.toggle('hidden'));
-
-const LETTERS = ['A', 'L', 'L', 'I', 'P', 'S'];
-const NUM_STITCHES = 10;
+function getCfg() {
+  return {
+    speed: parseFloat(inputs.speed.value) || 1,
+    tCol: inputs.threadColor.value || '#cc3344',
+    lCol: inputs.letterColor.value || '#1a1a22',
+    tW: parseFloat(inputs.threadWidth.value) || 2.5,
+    lSz: parseFloat(inputs.letterSize.value) || 22,
+    stg: parseFloat(inputs.stagger.value) || 0.02,
+  };
+}
 
 function lerp(a, b, t) { return a + (b - a) * t; }
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-
-let entryPt, exitPt;
-
-function initPath() {
-  const cx = W / 2;
-  const cy = H / 2;
-  entryPt = { x: cx - W*0.22, y: cy - H*0.22 };
-  exitPt  = { x: cx + W*0.22, y: cy + H*0.22 };
-}
-initPath();
-window.addEventListener('resize', () => { resize(); initPath(); });
-
-function getPt(t, a, b) {
-  return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) };
-}
-
-function getAngle(a, b) {
-  return Math.atan2(b.y - a.y, b.x - a.x);
-}
+function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
 
 function drawBackground(ctx_, W_, H_) {
   ctx_.fillStyle = '#7a6a56';
@@ -130,221 +80,146 @@ function drawBackground(ctx_, W_, H_) {
     }
     ctx_.stroke();
   }
+  const bgGrad = ctx_.createRadialGradient(W_*0.4, H_*0.4, 0, W_*0.5, H_*0.5, W_*0.8);
+  bgGrad.addColorStop(0, 'rgba(90,78,65,0.15)');
+  bgGrad.addColorStop(1, 'rgba(0,0,0,0.2)');
+  ctx_.fillStyle = bgGrad;
+  ctx_.fillRect(0, 0, W_, H_);
 }
 
 function drawFabric(ctx_, W_, H_) {
   const cx = W_ / 2;
   const cy = H_ / 2;
-  const fw = W_ * 0.48;
-  const fh = H_ * 0.52;
+  const fw = W_ * 0.75;
+  const fh = H_ * 0.72;
 
   const cloth = new Path2D();
-  cloth.moveTo(cx - fw*0.44, cy - fh*0.40);
-  cloth.quadraticCurveTo(cx - fw*0.48, cy - fh*0.34, cx - fw*0.42, cy - fh*0.26);
-  cloth.quadraticCurveTo(cx - fw*0.40, cy - fh*0.16, cx - fw*0.38, cy - fh*0.08);
-  cloth.quadraticCurveTo(cx - fw*0.42, cy + 0.02, cx - fw*0.40, cy + 0.10);
-  cloth.quadraticCurveTo(cx - fw*0.38, cy + 0.18, cx - fw*0.36, cy + 0.26);
-  cloth.quadraticCurveTo(cx - fw*0.40, cy + 0.34, cx - fw*0.34, cy + 0.40);
-  cloth.quadraticCurveTo(cx - fw*0.24, cy + 0.46, cx - fw*0.10, cy + 0.44);
-  cloth.quadraticCurveTo(cx, cy + 0.46, cx + fw*0.10, cy + 0.44);
-  cloth.quadraticCurveTo(cx + fw*0.24, cy + 0.46, cx + fw*0.34, cy + 0.40);
-  cloth.quadraticCurveTo(cx + fw*0.40, cy + 0.34, cx + fw*0.36, cy + 0.26);
-  cloth.quadraticCurveTo(cx + fw*0.38, cy + 0.18, cx + fw*0.40, cy + 0.10);
-  cloth.quadraticCurveTo(cx + fw*0.42, cy + 0.02, cx + fw*0.38, cy - fh*0.08);
-  cloth.quadraticCurveTo(cx + fw*0.40, cy - fh*0.16, cx + fw*0.42, cy - fh*0.26);
-  cloth.quadraticCurveTo(cx + fw*0.48, cy - fh*0.34, cx + fw*0.44, cy - fh*0.40);
-  cloth.quadraticCurveTo(cx + fw*0.26, cy - fh*0.44, cx, cy - fh*0.42);
-  cloth.quadraticCurveTo(cx - fw*0.26, cy - fh*0.44, cx - fw*0.44, cy - fh*0.40);
-  cloth.closePath();
+  cloth.rect(cx - fw/2, cy - fh/2, fw, fh);
 
   ctx_.save();
-  ctx_.shadowColor = 'rgba(0,0,0,0.25)';
-  ctx_.shadowBlur = 30;
-  ctx_.shadowOffsetY = 6;
-  ctx_.shadowOffsetX = 2;
+  ctx_.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx_.shadowBlur = 40;
+  ctx_.shadowOffsetY = 10;
+  ctx_.shadowOffsetX = 4;
   ctx_.fillStyle = 'rgba(0,0,0,0.01)';
   ctx_.fill(cloth);
   ctx_.restore();
 
   ctx_.save();
-  ctx_.globalAlpha = 0.65;
-  const baseGrad = ctx_.createLinearGradient(cx - fw*0.3, cy - fh*0.3, cx + fw*0.3, cy + fh*0.3);
-  baseGrad.addColorStop(0, '#e0d9c8');
-  baseGrad.addColorStop(0.3, '#d6ceba');
-  baseGrad.addColorStop(0.6, '#ccc4ae');
-  baseGrad.addColorStop(1, '#c2b8a2');
+  const baseGrad = ctx_.createLinearGradient(cx, cy - fh/2, cx, cy + fh/2);
+  baseGrad.addColorStop(0, '#ddd6c4');
+  baseGrad.addColorStop(0.5, '#d4ccb8');
+  baseGrad.addColorStop(1, '#c8c0ac');
   ctx_.fillStyle = baseGrad;
   ctx_.fill(cloth);
   ctx_.clip(cloth);
 
-  const pg = ctx_.createLinearGradient(cx - fw*0.05, cy - fh*0.4, cx + fw*0.05, cy + fh*0.4);
-  pg.addColorStop(0, 'rgba(0,0,0,0)');
-  pg.addColorStop(0.25, 'rgba(0,0,0,0.05)');
-  pg.addColorStop(0.38, 'rgba(0,0,0,0.18)');
-  pg.addColorStop(0.45, 'rgba(0,0,0,0.26)');
-  pg.addColorStop(0.50, 'rgba(0,0,0,0.22)');
-  pg.addColorStop(0.55, 'rgba(0,0,0,0.12)');
-  pg.addColorStop(0.62, 'rgba(0,0,0,0.05)');
-  pg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx_.fillStyle = pg;
-  ctx_.fillRect(cx - fw*0.5, cy - fh*0.5, fw, fh);
-
-  ctx_.strokeStyle = 'rgba(160,148,130,0.15)';
-  ctx_.lineWidth = 0.5;
-  for (let y = cy - fh*0.42; y < cy + fh*0.42; y += 2.5) {
-    ctx_.beginPath();
-    ctx_.moveTo(cx - fw*0.43, y + Math.sin(y * 0.5) * 0.3);
-    ctx_.lineTo(cx + fw*0.43, y + Math.sin(y * 0.5 + 1) * 0.3);
-    ctx_.stroke();
-  }
-  ctx_.strokeStyle = 'rgba(140,130,115,0.1)';
-  ctx_.lineWidth = 0.4;
-  for (let x = cx - fw*0.43; x < cx + fw*0.43; x += 2.5) {
-    ctx_.beginPath();
-    ctx_.moveTo(x + Math.sin(x * 0.5) * 0.3, cy - fh*0.42);
-    ctx_.lineTo(x + Math.sin(x * 0.5 + 1) * 0.3, cy + fh*0.42);
-    ctx_.stroke();
-  }
-
-  const edgeShd = ctx_.createRadialGradient(cx, cy, fw*0.2, cx, cy, fw*0.6);
-  edgeShd.addColorStop(0, 'rgba(0,0,0,0)');
-  edgeShd.addColorStop(0.7, 'rgba(0,0,0,0)');
-  edgeShd.addColorStop(0.9, 'rgba(0,0,0,0.04)');
-  edgeShd.addColorStop(1, 'rgba(0,0,0,0.12)');
-  ctx_.fillStyle = edgeShd;
-  ctx_.fillRect(cx - fw*0.5, cy - fh*0.5, fw, fh);
-  ctx_.restore(); // clip + alpha
-}
-
-function drawStitches(ctx_, p1, p2, prog, color, width, alpha) {
-  if (prog <= 0) return;
-  const ang = getAngle(p1, p2);
-  const perp = ang + Math.PI / 2;
-  const off = width * 1.5;
+  ctx_.save();
+  ctx_.beginPath();
+  ctx_.rect(cx - fw/2, cy - fh/2, fw/2, fh);
+  ctx_.clip();
+  const leftGrad = ctx_.createLinearGradient(cx - fw/2, cy, cx, cy);
+  leftGrad.addColorStop(0, 'rgba(255,248,235,0.08)');
+  leftGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx_.fillStyle = leftGrad;
+  ctx_.fillRect(cx - fw/2, cy - fh/2, fw/2, fh);
+  ctx_.restore();
 
   ctx_.save();
+  ctx_.beginPath();
+  ctx_.rect(cx, cy - fh/2, fw/2, fh);
+  ctx_.clip();
+  const rightGrad = ctx_.createLinearGradient(cx, cy, cx + fw/2, cy);
+  rightGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  rightGrad.addColorStop(1, 'rgba(0,0,0,0.20)');
+  ctx_.fillStyle = rightGrad;
+  ctx_.fillRect(cx, cy - fh/2, fw/2, fh);
+  ctx_.restore();
 
-  // Punti completati (fino a prog)
-  for (let i = 0; i < NUM_STITCHES; i++) {
-    const tCenter = (i + 0.5) / NUM_STITCHES;
-    if (tCenter > prog) break;
+  ctx_.strokeStyle = 'rgba(80,70,55,0.15)';
+  ctx_.lineWidth = 1.5;
+  ctx_.beginPath();
+  ctx_.moveTo(cx, cy - fh/2);
+  ctx_.lineTo(cx, cy + fh/2);
+  ctx_.stroke();
 
-    const center = getPt(tCenter, p1, p2);
-    const side = i % 2 === 0 ? 1 : -1;
+  const foldShd = ctx_.createLinearGradient(cx - 8, cy, cx + 2, cy);
+  foldShd.addColorStop(0, 'rgba(0,0,0,0)');
+  foldShd.addColorStop(0.5, 'rgba(0,0,0,0.12)');
+  foldShd.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx_.fillStyle = foldShd;
+  ctx_.fillRect(cx - 8, cy - fh/2, 10, fh);
 
-    // Buchi di entrata e uscita
-    const h1x = center.x + Math.cos(perp) * off * side;
-    const h1y = center.y + Math.sin(perp) * off * side;
-    const h2x = center.x - Math.cos(perp) * off * side;
-    const h2y = center.y - Math.sin(perp) * off * side;
+  const foldHi = ctx_.createLinearGradient(cx, cy, cx + 8, cy);
+  foldHi.addColorStop(0, 'rgba(255,255,240,0)');
+  foldHi.addColorStop(0.5, 'rgba(255,255,240,0.10)');
+  foldHi.addColorStop(1, 'rgba(255,255,240,0)');
+  ctx_.fillStyle = foldHi;
+  ctx_.fillRect(cx, cy - fh/2, 8, fh);
 
-    ctx_.globalAlpha = alpha * 0.5;
-    ctx_.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx_.globalAlpha = 0.06;
+  ctx_.strokeStyle = '#a09078';
+  ctx_.lineWidth = 0.4;
+  for (let y = cy - fh/2; y < cy + fh/2; y += 3) {
     ctx_.beginPath();
-    ctx_.arc(h1x, h1y, width * 0.25, 0, Math.PI * 2);
-    ctx_.fill();
+    ctx_.moveTo(cx - fw/2, y);
+    ctx_.lineTo(cx + fw/2, y);
+    ctx_.stroke();
+  }
+  for (let x = cx - fw/2; x < cx + fw/2; x += 3) {
     ctx_.beginPath();
-    ctx_.arc(h2x, h2y, width * 0.25, 0, Math.PI * 2);
-    ctx_.fill();
-
-    // Filo visibile (sopra il tessuto) — da un buco all'altro
-    if (tCenter < prog) {
-      ctx_.globalAlpha = alpha;
-      ctx_.strokeStyle = color;
-      ctx_.lineWidth = width;
-      ctx_.lineCap = 'round';
-      ctx_.lineJoin = 'round';
-      ctx_.shadowColor = color;
-      ctx_.shadowBlur = 2;
-
-      ctx_.beginPath();
-      ctx_.moveTo(h1x, h1y);
-      const mx = (h1x + h2x) / 2 + Math.cos(perp) * width * 0.5 * side;
-      const my = (h1y + h2y) / 2 + Math.sin(perp) * width * 0.5 * side;
-      ctx_.quadraticCurveTo(mx, my, h2x, h2y);
-      ctx_.stroke();
-    }
+    ctx_.moveTo(x, cy - fh/2);
+    ctx_.lineTo(x, cy + fh/2);
+    ctx_.stroke();
   }
 
-  // Punto in corso (parziale, fino a prog)
-  const activeIdx = Math.floor(prog * NUM_STITCHES);
-  if (activeIdx < NUM_STITCHES) {
-    const tStart = activeIdx / NUM_STITCHES;
-    const tEnd = (activeIdx + 1) / NUM_STITCHES;
-    const localT = (prog - tStart) / (tEnd - tStart);
-
-    const cStart = getPt(tStart, p1, p2);
-    const cEnd = getPt(prog, p1, p2);
-    const side = activeIdx % 2 === 0 ? 1 : -1;
-
-    const h1x = cStart.x + Math.cos(perp) * off * side;
-    const h1y = cStart.y + Math.sin(perp) * off * side;
-
-    if (localT < 0.5) {
-      // Sta entrando — filo dal centro verso il primo buco
-      ctx_.globalAlpha = alpha;
-      ctx_.strokeStyle = color;
-      ctx_.lineWidth = width;
-      ctx_.lineCap = 'round';
-      ctx_.shadowColor = color;
-      ctx_.shadowBlur = 2;
-
-      const frac = localT / 0.5;
-      const ex = lerp(cStart.x, h1x, frac);
-      const ey = lerp(cStart.y, h1y, frac);
-      ctx_.beginPath();
-      ctx_.moveTo(cStart.x, cStart.y);
-      ctx_.quadraticCurveTo(
-        (cStart.x + ex) / 2 + Math.cos(perp) * width * 0.3,
-        (cStart.y + ey) / 2 + Math.sin(perp) * width * 0.3,
-        ex, ey
-      );
-      ctx_.stroke();
-
-      // Buco
-      ctx_.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx_.globalAlpha = 0.5;
-      ctx_.beginPath();
-      ctx_.arc(h1x, h1y, width * 0.25, 0, Math.PI * 2);
-      ctx_.fill();
-    } else {
-      // Sta uscendo — filo dal primo buco attraverso il centro verso il secondo
-      const h2x = cEnd.x - Math.cos(perp) * off * side;
-      const h2y = cEnd.y - Math.sin(perp) * off * side;
-      const frac = (localT - 0.5) / 0.5;
-
-      const ex = lerp(cStart.x, cEnd.x, frac);
-      const ey = lerp(cStart.y, cEnd.y, frac);
-
-      ctx_.globalAlpha = alpha;
-      ctx_.strokeStyle = color;
-      ctx_.lineWidth = width;
-      ctx_.lineCap = 'round';
-      ctx_.shadowColor = color;
-      ctx_.shadowBlur = 2;
-
-      ctx_.beginPath();
-      ctx_.moveTo(h1x, h1y);
-      const mx = (h1x + ex) / 2 + Math.cos(perp) * width * 0.5 * side;
-      const my = (h1y + ey) / 2 + Math.sin(perp) * width * 0.5 * side;
-      ctx_.quadraticCurveTo(mx, my, ex, ey);
-      ctx_.stroke();
-    }
-  }
+  const edgeShd = ctx_.createRadialGradient(cx, cy, fw*0.2, cx, cy, fw*0.55);
+  edgeShd.addColorStop(0, 'rgba(0,0,0,0)');
+  edgeShd.addColorStop(0.7, 'rgba(0,0,0,0)');
+  edgeShd.addColorStop(1, 'rgba(0,0,0,0.15)');
+  ctx_.globalAlpha = 1;
+  ctx_.fillStyle = edgeShd;
+  ctx_.fillRect(cx - fw/2, cy - fh/2, fw, fh);
 
   ctx_.restore();
 }
 
-function drawLetter(ctx_, char, x, y, size, color, angle, inside) {
+const SPIRAL_TURNS = 6;
+const SPIRAL_START_RADIUS = 8;
+let spiralEndRadius = Math.min(W, H) * 0.3;
+
+function initSpiral() {
+  spiralEndRadius = Math.min(W, H) * 0.3;
+}
+
+function getSpiralPoint(t) {
+  const angle = t * SPIRAL_TURNS * 2 * Math.PI;
+  const r = SPIRAL_START_RADIUS + (spiralEndRadius - SPIRAL_START_RADIUS) * t;
+  const cx = W / 2;
+  const cy = H / 2;
+  return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+}
+
+function getSpiralAngle(t) {
+  const angle = t * SPIRAL_TURNS * 2 * Math.PI;
+  const drdt = (spiralEndRadius - SPIRAL_START_RADIUS);
+  const r = SPIRAL_START_RADIUS + drdt * t;
+  const dx = -r * Math.sin(angle) + drdt * Math.cos(angle);
+  const dy = r * Math.cos(angle) + drdt * Math.sin(angle);
+  return Math.atan2(dy, dx);
+}
+
+function drawLetter(ctx_, char, x, y, size, color, angle, alpha, inside) {
   ctx_.save();
   ctx_.translate(x, y);
   ctx_.rotate(angle);
   ctx_.font = `bold ${size}px Helvetica, Arial, sans-serif`;
   ctx_.textAlign = 'center';
   ctx_.textBaseline = 'middle';
+  ctx_.globalAlpha = alpha;
   if (inside) {
     ctx_.fillStyle = '#6a5e50';
-    ctx_.globalAlpha = 0.5;
+    ctx_.globalAlpha *= 0.5;
   } else {
     ctx_.fillStyle = color;
     ctx_.shadowColor = 'rgba(0,0,0,0.15)';
@@ -354,18 +229,71 @@ function drawLetter(ctx_, char, x, y, size, color, angle, inside) {
   ctx_.restore();
 }
 
-let startTime = 0;
-
-function getCfg() {
-  return {
-    speed: parseFloat(inputs.speed.value) || 1,
-    tCol: inputs.threadColor.value || '#cc3344',
-    lCol: inputs.letterColor.value || '#1a1a22',
-    tW: parseFloat(inputs.threadWidth.value) || 2.5,
-    lSz: parseFloat(inputs.letterSize.value) || 22,
-    stg: parseFloat(inputs.stagger.value) || 0.02,
-  };
+function drawStitches(ctx_, prog, color, width, alpha) {
+  if (prog <= 0) return;
+  ctx_.save();
+  const segments = 300;
+  const segs = Math.floor(prog * segments);
+  for (let i = 0; i < segs; i++) {
+    const t1 = i / segments;
+    const t2 = (i + 1) / segments;
+    const p1 = getSpiralPoint(t1);
+    const p2 = getSpiralPoint(t2);
+    const mx = (p1.x + p2.x) / 2;
+    const isRight = mx > W / 2;
+    ctx_.globalAlpha = isRight ? alpha * 0.4 : alpha;
+    ctx_.strokeStyle = isRight ? '#886070' : color;
+    ctx_.lineWidth = width;
+    ctx_.lineCap = 'round';
+    ctx_.beginPath();
+    ctx_.moveTo(p1.x, p1.y);
+    ctx_.lineTo(p2.x, p2.y);
+    ctx_.stroke();
+  }
+  for (let n = 0; n < SPIRAL_TURNS * 2; n++) {
+    const t = (0.5 + n) / (SPIRAL_TURNS * 2);
+    if (t > prog) break;
+    const pt = getSpiralPoint(t);
+    ctx_.globalAlpha = alpha * 0.6;
+    ctx_.fillStyle = 'rgba(30,20,10,0.5)';
+    ctx_.beginPath();
+    ctx_.arc(pt.x, pt.y, width * 0.25, 0, Math.PI * 2);
+    ctx_.fill();
+    ctx_.beginPath();
+    ctx_.arc(pt.x, pt.y, width * 0.15, 0, Math.PI * 2);
+    ctx_.fillStyle = 'rgba(10,5,0,0.7)';
+    ctx_.fill();
+  }
+  ctx_.restore();
 }
+
+function drawSafetyPin(ctx_, pt, angle, alpha) {
+  const a = angle + Math.PI * 0.25;
+  const len = 14;
+  const px = pt.x + Math.cos(a) * len;
+  const py = pt.y + Math.sin(a) * len;
+  ctx_.save();
+  ctx_.globalAlpha = alpha;
+  ctx_.shadowColor = 'rgba(0,0,0,0.12)';
+  ctx_.shadowBlur = 2;
+  ctx_.strokeStyle = '#a0a0a8';
+  ctx_.lineWidth = 1.8;
+  ctx_.beginPath();
+  ctx_.moveTo(pt.x, pt.y);
+  ctx_.lineTo(px, py);
+  ctx_.stroke();
+  ctx_.fillStyle = '#b8b8c0';
+  ctx_.beginPath();
+  ctx_.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
+  ctx_.fill();
+  ctx_.fillStyle = '#888890';
+  ctx_.beginPath();
+  ctx_.arc(px, py, 1, 0, Math.PI * 2);
+  ctx_.fill();
+  ctx_.restore();
+}
+
+let startTime = 0;
 
 function draw(ts) {
   try {
@@ -373,7 +301,7 @@ function draw(ts) {
   const spd = cfg.speed;
   const stg = cfg.stg;
   const letterTravelTime = 4.5;
-  const travelTime = stg * 5 + letterTravelTime;
+  const travelTime = stg * (LETTERS.length - 1) + letterTravelTime;
   const holdTime = 2.0;
   const fadeTime = 0.8;
   const cycleLen = travelTime + holdTime + fadeTime;
@@ -386,131 +314,68 @@ function draw(ts) {
   }
   alpha = Math.max(0, alpha);
 
-  const ctx_ = ctx;
-  ctx_.clearRect(0, 0, W, H);
+  ctx.clearRect(0, 0, W, H);
+  drawBackground(ctx, W, H);
+  drawFabric(ctx, W, H);
 
-  drawBackground(ctx_, W, H);
-  drawFabric(ctx_, W, H);
+  let maxProg = 0;
+  for (let i = 0; i < LETTERS.length; i++) {
+    const raw = (ct - stg * i) / letterTravelTime;
+    if (raw > maxProg) maxProg = raw;
+  }
+  const stitchProg = Math.min(1, maxProg);
 
-  const p1 = entryPt;
-  const p2 = exitPt;
-  const lDur = letterTravelTime;
-  const transTime = 0.3;
-  let sProg = 0;
+  if (stitchProg > 0 && alpha > 0) {
+    drawStitches(ctx, stitchProg, cfg.tCol, cfg.tW, alpha);
+  }
+
+  if (stitchProg >= 1 && alpha > 0) {
+    const endPt = getSpiralPoint(1);
+    const a = getSpiralAngle(1);
+    drawSafetyPin(ctx, endPt, a, alpha);
+  }
 
   for (let i = 0; i < LETTERS.length; i++) {
-    const raw = (ct - stg * i) / lDur;
-    const isLast = (i === LETTERS.length - 1);
-    const prog = Math.min(1, Math.max(0, raw));
+    const raw = (ct - stg * i) / letterTravelTime;
+    const prog = clamp(raw, 0, 1);
+    if (raw < 0) continue;
+
     let drawX, drawY, drawAngle;
-    let visible = false;
     let inside = false;
 
-    if (raw >= 0 && raw < 1) {
-      const pt = getPt(prog, p1, p2);
-      drawX = pt.x;
-      drawY = pt.y;
-      drawAngle = getAngle(p1, p2);
-      visible = true;
-      const rawStitch = prog * NUM_STITCHES;
-      const localT = rawStitch - Math.floor(rawStitch);
-      inside = localT >= 0.4 && localT < 0.9;
-      if (isLast) sProg = prog;
-    } else if (raw >= 1) {
+    if (raw >= 1) {
       const sinceDone = raw - 1;
-      if (sinceDone < transTime) {
-        const tr = sinceDone / transTime;
+      const endPt = getSpiralPoint(1);
+      const fx = W / 2 + (i - 2.5) * cfg.lSz * 0.6;
+      const fy = H * 0.88;
+      if (sinceDone < 0.3) {
+        const tr = sinceDone / 0.3;
         const ease = tr * tr * (3 - 2 * tr);
-        const endPt = getPt(1, p1, p2);
-        const fx = W / 2 + (i - 2.5) * cfg.lSz * 0.6;
-        const fy = H * 0.88;
         drawX = lerp(endPt.x, fx, ease);
         drawY = lerp(endPt.y, fy, ease);
-        drawAngle = 0;
-        visible = true;
-        inside = false;
       } else {
-        const fx = W / 2 + (i - 2.5) * cfg.lSz * 0.6;
         drawX = fx;
-        drawY = H * 0.88;
-        drawAngle = 0;
-        visible = true;
-        inside = false;
+        drawY = fy;
       }
-      if (isLast) sProg = 1;
+      drawAngle = 0;
+    } else {
+      const pt = getSpiralPoint(prog);
+      drawX = pt.x;
+      drawY = pt.y;
+      drawAngle = getSpiralAngle(prog);
+      const isRightSide = drawX > W / 2;
+      const isOnFold = Math.abs(drawX - W / 2) < 3;
+      inside = isRightSide || isOnFold;
     }
 
-    if (visible) {
-      ctx_.save();
-      ctx_.globalAlpha = alpha;
-      drawLetter(ctx_, LETTERS[i], drawX, drawY, cfg.lSz, cfg.lCol, drawAngle, inside);
-      ctx_.restore();
-    }
-  }
-
-  if (sProg > 0 && alpha > 0) {
-    drawStitches(ctx_, p1, p2, sProg, cfg.tCol, cfg.tW, alpha);
-
-    if (sProg < 1) {
-      const tip = getPt(sProg, p1, p2);
-      const a = getAngle(p1, p2);
-      ctx_.save();
-      ctx_.globalAlpha = alpha;
-      ctx_.shadowColor = 'rgba(0,0,0,0.12)';
-      ctx_.shadowBlur = 2;
-      const aLen = 6 + cfg.tW;
-      const exTip = tip.x + Math.cos(a) * aLen;
-      const eyTip = tip.y + Math.sin(a) * aLen;
-      ctx_.strokeStyle = '#b0b0b8';
-      ctx_.lineWidth = 1.5;
-      ctx_.beginPath();
-      ctx_.moveTo(tip.x, tip.y);
-      ctx_.lineTo(exTip, eyTip);
-      ctx_.stroke();
-      ctx_.fillStyle = '#c8c8d0';
-      ctx_.beginPath();
-      ctx_.arc(exTip, eyTip, 1.2, 0, Math.PI * 2);
-      ctx_.fill();
-      ctx_.restore();
-    }
-  }
-
-  if (sProg >= 1 && alpha > 0) {
-    // Spilla di sicurezza
-    ctx_.save();
-    ctx_.globalAlpha = alpha;
-    const a = getAngle(p1, p2) + Math.PI * 0.25;
-    const len = 14 + cfg.tW;
-    const px = endPt.x + Math.cos(a) * len;
-    const py = endPt.y + Math.sin(a) * len;
-    ctx_.shadowColor = 'rgba(0,0,0,0.12)';
-    ctx_.shadowBlur = 2;
-    ctx_.strokeStyle = '#a0a0a8';
-    ctx_.lineWidth = 1.8;
-    ctx_.beginPath();
-    ctx_.moveTo(endPt.x, endPt.y);
-    ctx_.lineTo(px, py);
-    ctx_.stroke();
-    ctx_.fillStyle = '#b8b8c0';
-    ctx_.beginPath();
-    ctx_.arc(endPt.x, endPt.y, 2.5, 0, Math.PI * 2);
-    ctx_.fill();
-    ctx_.fillStyle = '#888890';
-    ctx_.beginPath();
-    ctx_.arc(px, py, 1, 0, Math.PI * 2);
-    ctx_.fill();
-    ctx_.restore();
+    drawLetter(ctx, LETTERS[i], drawX, drawY, cfg.lSz, cfg.lCol, drawAngle, alpha, inside);
   }
 
   } catch (e) { console.error(e); }
   requestAnimationFrame(draw);
 }
 
-  } catch (e) { console.error(e); }
-  requestAnimationFrame(draw);
-}
-
-initPath();
+initSpiral();
 startTime = performance.now();
 requestAnimationFrame(draw);
 </script>
