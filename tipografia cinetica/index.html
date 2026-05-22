@@ -263,10 +263,10 @@ function drawLetter(ctx_, char, x, y, size, color, angle, alpha, mode) {
   ctx_.textBaseline = 'middle';
   if (mode === 'fold') {
     ctx_.globalAlpha = alpha * 0.2;
-    ctx_.fillStyle = '#6a5e50';
+    ctx_.fillStyle = '#2a3a5c';
   } else if (mode === 'right') {
     ctx_.globalAlpha = alpha * 0.5;
-    ctx_.fillStyle = '#8a7a6a';
+    ctx_.fillStyle = '#3a4a6c';
   } else {
     ctx_.globalAlpha = alpha;
     ctx_.fillStyle = color;
@@ -288,7 +288,7 @@ function drawStitches(ctx_, prog, color, width, alpha) {
     const sn = Math.floor(i / 2);
     const isLeft = sn % 2 === 0;
     ctx_.globalAlpha = isLeft ? alpha : alpha * 0.4;
-    ctx_.strokeStyle = isLeft ? color : '#8a7a40';
+    ctx_.strokeStyle = isLeft ? color : '#6a7a4a';
     ctx_.lineWidth = width;
     ctx_.lineCap = 'round';
     ctx_.shadowColor = isLeft ? color : 'transparent';
@@ -422,7 +422,7 @@ function draw(ts) {
   if (alpha > 0) {
     ctx.save();
     ctx.globalAlpha = 0.3 * alpha;
-    ctx.fillStyle = '#9cb0c8';
+    ctx.fillStyle = '#1e2d4a';
     ctx.beginPath();
     ctx.rect(W / 2, 0, W / 2, H);
     ctx.fill();
