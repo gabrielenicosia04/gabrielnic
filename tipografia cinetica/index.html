@@ -118,6 +118,7 @@ function drawFabric(ctx_, W_, H_) {
   ctx_.shadowColor = 'transparent';
   ctx_.shadowBlur = 0;
   ctx_.shadowOffsetY = 0;
+  ctx_.clip(cloth);
 }
 
 let zigCx, zigTopY, zigH, zigW;
@@ -324,15 +325,6 @@ function draw(ts) {
     }
   }
 
-  drawFabric(ctx, W, H);
-
-  // Letters during zigzag that are RIGHT of center + all after zigzag — drawn ON TOP
-  for (const d of letterData) {
-    if (d.raw >= 1 || d.drawX >= W / 2) {
-      drawLetter(ctx, LETTERS[d.i], d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
-    }
-  }
-
   let minProg = 1, maxProg = 0;
   for (let i = 0; i < LETTERS.length; i++) {
     const raw = (ct - stg * i) / letterTravelTime;
@@ -344,11 +336,20 @@ function draw(ts) {
   }
   const stitchProg = Math.min(1, maxProg);
 
+  ctx.save();
+  drawFabric(ctx, W, H);
+
+  // Letters during zigzag that are RIGHT of center + all after zigzag — drawn ON TOP
+  for (const d of letterData) {
+    if (d.raw >= 1 || d.drawX >= W / 2) {
+      drawLetter(ctx, LETTERS[d.i], d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
+    }
+  }
+
   // Draw thread segments completed by ALL letters
   if (stitchProg > 0 && alpha > 0) {
-    ctx.save();
     const totalSegs = NUM_STITCHES * 2;
-    const segs = Math.floor(minProg * totalSegs);
+    const segs = Math.floor(maxProg * totalSegs);
     for (let i = 0; i < segs; i++) {
       const p1 = zigzagVertex(i);
       const p2 = zigzagVertex(i + 1);
@@ -382,14 +383,12 @@ function draw(ts) {
       ctx.lineTo(letterPt.x, letterPt.y);
       ctx.stroke();
     }
-    ctx.restore();
 
     // Needle hole dots at completed segments
-    ctx.save();
     ctx.shadowBlur = 0;
     for (let i = 0; i < NUM_STITCHES + 1; i++) {
       const t = (i + 0.001) / (NUM_STITCHES * 2);
-      if (t > minProg) break;
+      if (t > maxProg) break;
       const pt = zigzagVertex(i * 2);
       ctx.globalAlpha = alpha * 0.7;
       ctx.fillStyle = 'rgba(30,20,10,0.6)';
@@ -401,13 +400,14 @@ function draw(ts) {
       ctx.fillStyle = 'rgba(10,5,0,0.8)';
       ctx.fill();
     }
-    ctx.restore();
   }
 
   if (stitchProg >= 1 && alpha > 0) {
     const endPt = getZigzagPoint(1);
     drawSafetyPin(ctx, endPt, alpha);
   }
+
+  ctx.restore();
 
   } catch (e) { console.error(e); }
   requestAnimationFrame(draw);
