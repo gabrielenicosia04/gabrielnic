@@ -285,24 +285,15 @@ function draw(ts) {
   ctx.clearRect(0, 0, W, H);
   drawBackground(ctx, W, H);
 
-  // Right side letters (L, L, A) — drawn under the fabric
-  for (let i = 3; i < LETTERS.length; i++) {
-    const raw = (ct - stg * i) / letterTravelTime;
-    if (raw < 1) continue;
-    const fx = W / 2 + (i - 2.5) * cfg.lSz * 0.6;
-    const fy = H * 0.88;
-    drawLetter(ctx, LETTERS[i], fx, fy, cfg.lSz, cfg.lCol, 0, alpha, 'none');
-  }
-
   drawFabric(ctx, W, H);
 
-  // Left side letters (S, P, I) — drawn on top of the fabric
-  for (let i = 0; i < 3; i++) {
+  // All 6 letters on the LEFT side — visible on top of the fabric
+  for (let i = 0; i < LETTERS.length; i++) {
     const raw = (ct - stg * i) / letterTravelTime;
     const prog = clamp(raw, 0, 1);
     if (raw < 0) continue;
     const endPt = getZigzagPoint(1);
-    const fx = W / 2 + (i - 2.5) * cfg.lSz * 0.6;
+    const fx = W / 2 - 80 + (i - 2.5) * cfg.lSz * 0.6;
     const fy = H * 0.88;
     let drawX, drawY;
     if (raw >= 1) {
