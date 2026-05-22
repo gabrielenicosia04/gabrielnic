@@ -261,7 +261,12 @@
               }
             }
 
-            const isPinching = closestDist < THRESHOLD;
+            const wrist = lm[0];
+            const palm = lm[9];
+            const hdx = (wrist[0] - palm[0]) * canvasEl.width;
+            const hdy = (wrist[1] - palm[1]) * canvasEl.height;
+            const handSize = Math.sqrt(hdx * hdx + hdy * hdy);
+            const isPinching = closestDist < handSize * 0.2;
             const prevFinger = prevPinchState[handId];
 
             if (isPinching) {

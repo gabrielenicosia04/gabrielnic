@@ -8,6 +8,12 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; background: #3a3028; overflow: hidden; font-family: Helvetica, Arial, sans-serif; }
 canvas { display: block; width: 100%; height: 100%; }
+#back {
+  position: fixed; top: 10px; left: 10px; z-index: 10;
+  color: #fff; font-size: 48px; font-family: serif;
+  text-decoration: none; line-height: 1;
+}
+#back:hover { opacity: 0.6; }
 #controls {
   position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
   background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
@@ -16,24 +22,26 @@ canvas { display: block; width: 100%; height: 100%; }
   font-size: 11px; color: #ccc; z-index: 10; user-select: none;
 }
 #controls label { display: flex; align-items: center; gap: 4px; }
-#controls input[type="range"] { width: 50px; }
-#controls input[type="color"] { width: 24px; height: 24px; border: none; padding: 0; cursor: pointer; }
+#controls input[type="range"] { width: 50px; vertical-align: middle; }
+#controls input[type="color"] { width: 22px; height: 22px; border: none; padding: 0; cursor: pointer; vertical-align: middle; }
+#controls span { min-width: 16px; text-align: center; display: inline-block; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<a id="back" href="../index.html">←</a>
 <div id="controls">
-  <label>Speed <input type="range" id="speed" min="0.1" max="5" step="0.1" value="1"></label>
-  <label>Thread <input type="color" id="threadColor" value="#cc3344"></label>
-  <label>Letters <input type="color" id="letterColor" value="#1a1a22"></label>
-  <label>Width <input type="range" id="threadWidth" min="0.5" max="6" step="0.1" value="2.5"></label>
-  <label>Size <input type="range" id="letterSize" min="10" max="50" step="1" value="22"></label>
-  <label>Stagger <input type="range" id="stagger" min="0" max="0.1" step="0.005" value="0.02"></label>
+  <label>Thread <input type="color" id="threadColor" value="#d4a017"></label>
+  <label>Letters <input type="color" id="letterColor" value="#888888"></label>
+  <label>Width <input type="range" id="threadWidth" min="0.5" max="6" step="0.1" value="2.5"><span id="twVal">2.5</span></label>
+  <label>Size <input type="range" id="letterSize" min="10" max="80" step="1" value="42"><span id="lsVal">42</span></label>
+  <label>Stagger <input type="range" id="stagger" min="0" max="0.5" step="0.005" value="0.08"><span id="stVal">0.08</span></label>
 </div>
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 const LETTERS = ['S', 'P', 'I', 'L', 'L', 'A'];
+const NUM_STITCHES = 14;
 
 let W, H;
 function resize() {
@@ -41,10 +49,9 @@ function resize() {
   H = canvas.height = window.innerHeight;
 }
 resize();
-window.addEventListener('resize', resize);
+window.addEventListener('resize', () => { resize(); initZigzag(); });
 
 const inputs = {
-  speed: document.getElementById('speed'),
   threadColor: document.getElementById('threadColor'),
   letterColor: document.getElementById('letterColor'),
   threadWidth: document.getElementById('threadWidth'),
@@ -52,14 +59,21 @@ const inputs = {
   stagger: document.getElementById('stagger'),
 };
 
+const twVal = document.getElementById('twVal');
+const lsVal = document.getElementById('lsVal');
+const stVal = document.getElementById('stVal');
+
+inputs.threadWidth.addEventListener('input', () => { twVal.textContent = inputs.threadWidth.value; });
+inputs.letterSize.addEventListener('input', () => { lsVal.textContent = inputs.letterSize.value; });
+inputs.stagger.addEventListener('input', () => { stVal.textContent = inputs.stagger.value; });
+
 function getCfg() {
   return {
-    speed: parseFloat(inputs.speed.value) || 1,
-    tCol: inputs.threadColor.value || '#cc3344',
-    lCol: inputs.letterColor.value || '#1a1a22',
+    tCol: inputs.threadColor.value || '#d4a017',
+    lCol: inputs.letterColor.value || '#888888',
     tW: parseFloat(inputs.threadWidth.value) || 2.5,
-    lSz: parseFloat(inputs.letterSize.value) || 22,
-    stg: parseFloat(inputs.stagger.value) || 0.02,
+    lSz: parseFloat(inputs.letterSize.value) || 42,
+    stg: parseFloat(inputs.stagger.value) || 0.08,
   };
 }
 
@@ -91,7 +105,7 @@ function drawFabric(ctx_, W_, H_) {
   const cx = W_ / 2;
   const cy = H_ / 2;
   const fw = W_ * 0.75;
-  const fh = H_ * 0.72;
+  const fh = H_ * 0.80;
 
   const cloth = new Path2D();
   cloth.rect(cx - fw/2, cy - fh/2, fw, fh);
@@ -107,9 +121,9 @@ function drawFabric(ctx_, W_, H_) {
 
   ctx_.save();
   const baseGrad = ctx_.createLinearGradient(cx, cy - fh/2, cx, cy + fh/2);
-  baseGrad.addColorStop(0, '#ddd6c4');
-  baseGrad.addColorStop(0.5, '#d4ccb8');
-  baseGrad.addColorStop(1, '#c8c0ac');
+  baseGrad.addColorStop(0, '#a8bcd4');
+  baseGrad.addColorStop(0.5, '#9cb0c8');
+  baseGrad.addColorStop(1, '#8ca0b8');
   ctx_.fillStyle = baseGrad;
   ctx_.fill(cloth);
   ctx_.clip(cloth);
@@ -131,7 +145,7 @@ function drawFabric(ctx_, W_, H_) {
   ctx_.clip();
   const rightGrad = ctx_.createLinearGradient(cx, cy, cx + fw/2, cy);
   rightGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  rightGrad.addColorStop(1, 'rgba(0,0,0,0.20)');
+  rightGrad.addColorStop(1, 'rgba(0,0,0,0.25)');
   ctx_.fillStyle = rightGrad;
   ctx_.fillRect(cx, cy - fh/2, fw/2, fh);
   ctx_.restore();
@@ -158,7 +172,7 @@ function drawFabric(ctx_, W_, H_) {
   ctx_.fillRect(cx, cy - fh/2, 8, fh);
 
   ctx_.globalAlpha = 0.06;
-  ctx_.strokeStyle = '#a09078';
+  ctx_.strokeStyle = '#8a9ab0';
   ctx_.lineWidth = 0.4;
   for (let y = cy - fh/2; y < cy + fh/2; y += 3) {
     ctx_.beginPath();
@@ -184,43 +198,77 @@ function drawFabric(ctx_, W_, H_) {
   ctx_.restore();
 }
 
-const SPIRAL_TURNS = 6;
-const SPIRAL_START_RADIUS = 8;
-let spiralEndRadius = Math.min(W, H) * 0.3;
+let zigCx, zigTopY, zigH, zigW;
 
-function initSpiral() {
-  spiralEndRadius = Math.min(W, H) * 0.3;
+function initZigzag() {
+  zigCx = W / 2;
+  zigTopY = H / 2 - H * 0.80 / 2;
+  zigH = H * 0.80;
+  zigW = W * 0.18;
 }
 
-function getSpiralPoint(t) {
-  const angle = t * SPIRAL_TURNS * 2 * Math.PI;
-  const r = SPIRAL_START_RADIUS + (spiralEndRadius - SPIRAL_START_RADIUS) * t;
-  const cx = W / 2;
-  const cy = H / 2;
-  return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+function getZigzagPoint(t) {
+  const totalSegs = NUM_STITCHES * 2;
+  const rawIdx = t * totalSegs;
+  const idx = Math.floor(rawIdx);
+  const localT = rawIdx - idx;
+
+  const p1 = zigzagVertex(idx);
+  const p2 = zigzagVertex(Math.min(idx + 1, totalSegs));
+  return {
+    x: lerp(p1.x, p2.x, localT),
+    y: lerp(p1.y, p2.y, localT),
+  };
 }
 
-function getSpiralAngle(t) {
-  const angle = t * SPIRAL_TURNS * 2 * Math.PI;
-  const drdt = (spiralEndRadius - SPIRAL_START_RADIUS);
-  const r = SPIRAL_START_RADIUS + drdt * t;
-  const dx = -r * Math.sin(angle) + drdt * Math.cos(angle);
-  const dy = r * Math.cos(angle) + drdt * Math.sin(angle);
-  return Math.atan2(dy, dx);
+function zigzagVertex(idx) {
+  if (idx % 2 === 0) {
+    const sn = idx / 2;
+    return { x: zigCx, y: zigTopY + (sn / NUM_STITCHES) * zigH };
+  } else {
+    const sn = Math.floor(idx / 2);
+    const isLeft = sn % 2 === 0;
+    return {
+      x: zigCx + (isLeft ? -1 : 1) * zigW,
+      y: zigTopY + ((sn + 0.5) / NUM_STITCHES) * zigH,
+    };
+  }
 }
 
-function drawLetter(ctx_, char, x, y, size, color, angle, alpha, inside) {
+function getZigzagAngle(t) {
+  const totalSegs = NUM_STITCHES * 2;
+  const rawIdx = t * totalSegs;
+  const idx = Math.min(Math.floor(rawIdx), totalSegs - 1);
+  const p1 = zigzagVertex(idx);
+  const p2 = zigzagVertex(Math.min(idx + 1, totalSegs));
+  return Math.atan2(p2.y - p1.y, p2.x - p1.x);
+}
+
+function zigzagSide(t) {
+  const totalSegs = NUM_STITCHES * 2;
+  const rawIdx = t * totalSegs;
+  const idx = Math.floor(rawIdx);
+  if (idx >= totalSegs) return 'right';
+  if (idx % 2 === 0) return 'fold';
+  const sn = Math.floor(idx / 2);
+  return sn % 2 === 0 ? 'left' : 'right';
+}
+
+function drawLetter(ctx_, char, x, y, size, color, angle, alpha, mode) {
   ctx_.save();
   ctx_.translate(x, y);
   ctx_.rotate(angle);
   ctx_.font = `bold ${size}px Helvetica, Arial, sans-serif`;
   ctx_.textAlign = 'center';
   ctx_.textBaseline = 'middle';
-  ctx_.globalAlpha = alpha;
-  if (inside) {
+  if (mode === 'fold') {
+    ctx_.globalAlpha = alpha * 0.2;
     ctx_.fillStyle = '#6a5e50';
-    ctx_.globalAlpha *= 0.5;
+  } else if (mode === 'right') {
+    ctx_.globalAlpha = alpha * 0.5;
+    ctx_.fillStyle = '#8a7a6a';
   } else {
+    ctx_.globalAlpha = alpha;
     ctx_.fillStyle = color;
     ctx_.shadowColor = 'rgba(0,0,0,0.15)';
     ctx_.shadowBlur = 3;
@@ -232,43 +280,44 @@ function drawLetter(ctx_, char, x, y, size, color, angle, alpha, inside) {
 function drawStitches(ctx_, prog, color, width, alpha) {
   if (prog <= 0) return;
   ctx_.save();
-  const segments = 300;
-  const segs = Math.floor(prog * segments);
+  const totalSegs = NUM_STITCHES * 2;
+  const segs = Math.floor(prog * totalSegs);
   for (let i = 0; i < segs; i++) {
-    const t1 = i / segments;
-    const t2 = (i + 1) / segments;
-    const p1 = getSpiralPoint(t1);
-    const p2 = getSpiralPoint(t2);
-    const mx = (p1.x + p2.x) / 2;
-    const isRight = mx > W / 2;
-    ctx_.globalAlpha = isRight ? alpha * 0.4 : alpha;
-    ctx_.strokeStyle = isRight ? '#886070' : color;
+    const p1 = zigzagVertex(i);
+    const p2 = zigzagVertex(i + 1);
+    const sn = Math.floor(i / 2);
+    const isLeft = sn % 2 === 0;
+    ctx_.globalAlpha = isLeft ? alpha : alpha * 0.4;
+    ctx_.strokeStyle = isLeft ? color : '#8a7a40';
     ctx_.lineWidth = width;
     ctx_.lineCap = 'round';
+    ctx_.shadowColor = isLeft ? color : 'transparent';
+    ctx_.shadowBlur = isLeft ? 2 : 0;
     ctx_.beginPath();
     ctx_.moveTo(p1.x, p1.y);
     ctx_.lineTo(p2.x, p2.y);
     ctx_.stroke();
   }
-  for (let n = 0; n < SPIRAL_TURNS * 2; n++) {
-    const t = (0.5 + n) / (SPIRAL_TURNS * 2);
+  ctx_.shadowBlur = 0;
+  for (let i = 0; i < NUM_STITCHES + 1; i++) {
+    const t = (i + 0.001) / (NUM_STITCHES * 2);
     if (t > prog) break;
-    const pt = getSpiralPoint(t);
-    ctx_.globalAlpha = alpha * 0.6;
-    ctx_.fillStyle = 'rgba(30,20,10,0.5)';
+    const pt = zigzagVertex(i * 2);
+    ctx_.globalAlpha = alpha * 0.7;
+    ctx_.fillStyle = 'rgba(30,20,10,0.6)';
     ctx_.beginPath();
-    ctx_.arc(pt.x, pt.y, width * 0.25, 0, Math.PI * 2);
+    ctx_.arc(pt.x, pt.y, width * 0.3, 0, Math.PI * 2);
     ctx_.fill();
     ctx_.beginPath();
     ctx_.arc(pt.x, pt.y, width * 0.15, 0, Math.PI * 2);
-    ctx_.fillStyle = 'rgba(10,5,0,0.7)';
+    ctx_.fillStyle = 'rgba(10,5,0,0.8)';
     ctx_.fill();
   }
   ctx_.restore();
 }
 
-function drawSafetyPin(ctx_, pt, angle, alpha) {
-  const a = angle + Math.PI * 0.25;
+function drawSafetyPin(ctx_, pt, alpha) {
+  const a = Math.PI * 0.75;
   const len = 14;
   const px = pt.x + Math.cos(a) * len;
   const py = pt.y + Math.sin(a) * len;
@@ -298,14 +347,13 @@ let startTime = 0;
 function draw(ts) {
   try {
   const cfg = getCfg();
-  const spd = cfg.speed;
   const stg = cfg.stg;
-  const letterTravelTime = 4.5;
+  const letterTravelTime = 20;
   const travelTime = stg * (LETTERS.length - 1) + letterTravelTime;
   const holdTime = 2.0;
   const fadeTime = 0.8;
   const cycleLen = travelTime + holdTime + fadeTime;
-  const t = ((ts - startTime) / 1000) * spd;
+  const t = ((ts - startTime) / 1000);
   const ct = t % cycleLen;
 
   let alpha = 1;
@@ -330,9 +378,8 @@ function draw(ts) {
   }
 
   if (stitchProg >= 1 && alpha > 0) {
-    const endPt = getSpiralPoint(1);
-    const a = getSpiralAngle(1);
-    drawSafetyPin(ctx, endPt, a, alpha);
+    const endPt = getZigzagPoint(1);
+    drawSafetyPin(ctx, endPt, alpha);
   }
 
   for (let i = 0; i < LETTERS.length; i++) {
@@ -341,11 +388,9 @@ function draw(ts) {
     if (raw < 0) continue;
 
     let drawX, drawY, drawAngle;
-    let inside = false;
-
     if (raw >= 1) {
       const sinceDone = raw - 1;
-      const endPt = getSpiralPoint(1);
+      const endPt = getZigzagPoint(1);
       const fx = W / 2 + (i - 2.5) * cfg.lSz * 0.6;
       const fy = H * 0.88;
       if (sinceDone < 0.3) {
@@ -359,23 +404,36 @@ function draw(ts) {
       }
       drawAngle = 0;
     } else {
-      const pt = getSpiralPoint(prog);
+      const pt = getZigzagPoint(prog);
       drawX = pt.x;
       drawY = pt.y;
-      drawAngle = getSpiralAngle(prog);
-      const isRightSide = drawX > W / 2;
-      const isOnFold = Math.abs(drawX - W / 2) < 3;
-      inside = isRightSide || isOnFold;
+      drawAngle = 0;
+      const mode = zigzagSide(prog);
+      let la = alpha;
+      if (mode === 'right') la = alpha * 0.7;
+      else if (mode === 'fold') la = alpha * 0.3;
+      drawLetter(ctx, LETTERS[i], drawX, drawY, cfg.lSz, cfg.lCol, drawAngle, la, 'none');
     }
+    if (raw >= 1) {
+      drawLetter(ctx, LETTERS[i], drawX, drawY, cfg.lSz, cfg.lCol, drawAngle, alpha, 'none');
+    }
+  }
 
-    drawLetter(ctx, LETTERS[i], drawX, drawY, cfg.lSz, cfg.lCol, drawAngle, alpha, inside);
+  if (alpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.3 * alpha;
+    ctx.fillStyle = '#9cb0c8';
+    ctx.beginPath();
+    ctx.rect(W / 2, 0, W / 2, H);
+    ctx.fill();
+    ctx.restore();
   }
 
   } catch (e) { console.error(e); }
   requestAnimationFrame(draw);
 }
 
-initSpiral();
+initZigzag();
 startTime = performance.now();
 requestAnimationFrame(draw);
 </script>
