@@ -340,100 +340,149 @@ function draw(ts) {
   const sSegIdx = Math.floor(maxProg * NUM_STITCHES * 2);
   const threadProg = sSegIdx % 2 === 0 ? minProg : maxProg;
 
-  ctx.save();
-  drawFabric(ctx, W, H);
-
-  // Letters during zigzag that are RIGHT of center — drawn ON fabric
-  for (const d of letterData) {
-    if (d.raw < 1 && d.drawX >= W / 2) {
-      const segIdx = Math.floor(d.raw * NUM_STITCHES * 2);
-      const swap = segIdx % 2 === 0;
-      const ch = swap ? LETTERS[LETTERS.length - 1 - d.i] : LETTERS[d.i];
-      drawLetter(ctx, ch, d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
-    }
-  }
-
-  // Draw zigzag thread that accumulates as S moves
-  if (stitchProg > 0 && alpha > 0) {
-    const totalSegs = NUM_STITCHES * 2;
-    const segs = Math.floor(threadProg * totalSegs);
+// ----- LEFT-SIDE thread (under fabric) -----
+if (stitchProg > 0 && alpha > 0) {
+  const totalSegs = NUM_STITCHES * 2;
+  const segs = Math.floor(threadProg * totalSegs);
+  for (let i = 0; i < segs; i++) {
+    const p1 = zigzagVertex(i);
+    const p2 = zigzagVertex(i + 1);
+    if ((p1.x + p2.x) / 2 >= zigCx) continue;
+    const curl = Math.max(0, 1 - (segs - i) / 3) * 3;
+    ctx.save();
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = cfg.tCol;
     ctx.lineWidth = cfg.tW;
     ctx.lineCap = 'round';
     ctx.shadowColor = cfg.tCol;
     ctx.shadowBlur = 2;
-    for (let i = 0; i < segs; i++) {
-      const p1 = zigzagVertex(i);
-      const p2 = zigzagVertex(i + 1);
-      const curl = Math.max(0, 1 - (segs - i) / 3) * 3;
-      ctx.beginPath();
-      if (curl > 0.3) {
-        const mx = (p1.x + p2.x) / 2;
-        const my = (p1.y + p2.y) / 2;
-        const dx = p2.x - p1.x;
-        const dy = p2.y - p1.y;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
-        const px = -dy / len;
-        const py = dx / len;
-        const off = curl * len * 0.03;
-        ctx.quadraticCurveTo(mx + px * off, my + py * off, p2.x, p2.y);
-      } else {
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-      }
-      ctx.stroke();
+    ctx.beginPath();
+    if (curl > 0.3) {
+      const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const px = -dy / len, py = dx / len;
+      ctx.quadraticCurveTo(mx + px * curl * len * 0.03, my + py * curl * len * 0.03, p2.x, p2.y);
+    } else {
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
     }
-    ctx.shadowBlur = 0;
-
-    // Partial segment from vertex to S
-    if (segs < totalSegs) {
-      const p1 = zigzagVertex(segs);
-      const p2 = getZigzagPoint(threadProg);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // Left partial segment
+  if (segs < totalSegs) {
+    const p1 = zigzagVertex(segs);
+    const p2 = getZigzagPoint(threadProg);
+    if ((p1.x + p2.x) / 2 < zigCx) {
+      ctx.save();
       ctx.globalAlpha = alpha;
       ctx.strokeStyle = cfg.tCol;
       ctx.lineWidth = cfg.tW;
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
       const len = Math.sqrt(dx * dx + dy * dy) || 1;
       if (len > 5) {
-        const px = -dy / len;
-        const py = dx / len;
-        const mx = (p1.x + p2.x) / 2;
-        const my = (p1.y + p2.y) / 2;
+        const px = -dy / len, py = dx / len;
+        const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+        ctx.quadraticCurveTo(mx + px * len * 0.05, my + py * len * 0.05, p2.x, p2.y);
+      } else {
+        ctx.lineTo(p2.x, p2.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+
+ctx.save();
+drawFabric(ctx, W, H);
+
+// Letters during zigzag that are RIGHT of center — drawn ON fabric
+for (const d of letterData) {
+  if (d.raw < 1 && d.drawX >= W / 2) {
+    const segIdx = Math.floor(d.raw * NUM_STITCHES * 2);
+    const swap = segIdx % 2 === 0;
+    const ch = swap ? LETTERS[LETTERS.length - 1 - d.i] : LETTERS[d.i];
+    drawLetter(ctx, ch, d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
+  }
+}
+
+// ----- RIGHT-SIDE thread (on fabric) -----
+if (stitchProg > 0 && alpha > 0) {
+  const totalSegs = NUM_STITCHES * 2;
+  const segs = Math.floor(threadProg * totalSegs);
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = cfg.tCol;
+  ctx.lineWidth = cfg.tW;
+  ctx.lineCap = 'round';
+  ctx.shadowColor = cfg.tCol;
+  ctx.shadowBlur = 2;
+  for (let i = 0; i < segs; i++) {
+    const p1 = zigzagVertex(i);
+    const p2 = zigzagVertex(i + 1);
+    if ((p1.x + p2.x) / 2 < zigCx) continue;
+    const curl = Math.max(0, 1 - (segs - i) / 3) * 3;
+    ctx.beginPath();
+    if (curl > 0.3) {
+      const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const px = -dy / len, py = dx / len;
+      ctx.quadraticCurveTo(mx + px * curl * len * 0.03, my + py * curl * len * 0.03, p2.x, p2.y);
+    } else {
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+    }
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+
+  // Right partial segment
+  if (segs < totalSegs) {
+    const p1 = zigzagVertex(segs);
+    const p2 = getZigzagPoint(threadProg);
+    if ((p1.x + p2.x) / 2 >= zigCx) {
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (len > 5) {
+        const px = -dy / len, py = dx / len;
+        const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
         ctx.quadraticCurveTo(mx + px * len * 0.05, my + py * len * 0.05, p2.x, p2.y);
       } else {
         ctx.lineTo(p2.x, p2.y);
       }
       ctx.stroke();
     }
-
-    // Needle hole dots at completed segments
-    ctx.shadowBlur = 0;
-    for (let i = 0; i < NUM_STITCHES + 1; i++) {
-      const t = (i + 0.001) / (NUM_STITCHES * 2);
-      if (t > threadProg) break;
-      const pt = zigzagVertex(i * 2);
-      ctx.globalAlpha = alpha * 0.7;
-      ctx.fillStyle = 'rgba(30,20,10,0.6)';
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, cfg.tW * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, cfg.tW * 0.15, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(10,5,0,0.8)';
-      ctx.fill();
-    }
   }
 
-  if (stitchProg >= 1 && alpha > 0) {
-    const endPt = getZigzagPoint(1);
-    drawSafetyPin(ctx, endPt, alpha);
+  // Needle hole dots at completed segments
+  ctx.shadowBlur = 0;
+  for (let i = 0; i < NUM_STITCHES + 1; i++) {
+    const t = (i + 0.001) / (NUM_STITCHES * 2);
+    if (t > threadProg) break;
+    const pt = zigzagVertex(i * 2);
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.fillStyle = 'rgba(30,20,10,0.6)';
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, cfg.tW * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, cfg.tW * 0.15, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(10,5,0,0.8)';
+    ctx.fill();
   }
+}
 
-  ctx.restore();
+if (stitchProg >= 1 && alpha > 0) {
+  const endPt = getZigzagPoint(1);
+  drawSafetyPin(ctx, endPt, alpha);
+}
+
+ctx.restore();
 
   // Finished letters (exited zigzag) — drawn on white background
   for (const d of letterData) {
