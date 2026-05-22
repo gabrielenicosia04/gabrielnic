@@ -303,17 +303,8 @@ function draw(ts) {
     const fy = H * 0.94;
     let drawX, drawY, mode;
     if (raw >= 1) {
-      const sinceDone = raw - 1;
-      const spreadTime = 0.8;
-      if (sinceDone < spreadTime) {
-        const tr = sinceDone / spreadTime;
-        const ease = tr * tr * (3 - 2 * tr);
-        drawX = lerp(endPt.x, fx, ease);
-        drawY = lerp(endPt.y, fy, ease);
-      } else {
-        drawX = fx;
-        drawY = fy;
-      }
+      drawX = fx;
+      drawY = fy;
       mode = 'done';
     } else if (raw >= 0) {
       const pt = getZigzagPoint(prog);
