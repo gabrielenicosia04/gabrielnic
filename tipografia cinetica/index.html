@@ -337,7 +337,7 @@ function draw(ts) {
   for (let i = 0; i < LETTERS.length; i++) {
     const raw = (ct - stg * i) / letterTravelTime;
     const prog = clamp(raw, 0, 1);
-    if (raw >= 0 && raw < 1) {
+    if (prog > 0) {
       if (prog < minProg) minProg = prog;
       if (prog > maxProg) maxProg = prog;
     }
