@@ -113,13 +113,17 @@ function drawFabric(ctx_, W_, H_) {
 
 
   ctx_.save();
+  ctx_.shadowColor = 'rgba(0,0,0,0.08)';
+  ctx_.shadowBlur = 20;
+  ctx_.shadowOffsetY = 4;
   ctx_.fillStyle = '#fff';
-  ctx_.fillStyle = baseGrad;
   ctx_.fill(cloth);
+  ctx_.restore();
+  ctx_.save();
+  ctx_.strokeStyle = 'rgba(0,0,0,0.06)';
+  ctx_.lineWidth = 1;
+  ctx_.stroke(cloth);
   ctx_.clip(cloth);
-
-  ctx_.fillStyle = '#fff';
-  ctx_.fillRect(cx - fw/2, cy - fh/2, fw, fh);
 
   ctx_.globalAlpha = 0.04;
   ctx_.strokeStyle = 'rgba(0,0,0,0.06)';
