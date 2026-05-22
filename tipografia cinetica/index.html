@@ -285,14 +285,12 @@ function drawStitches(ctx_, prog, color, width, alpha) {
   for (let i = 0; i < segs; i++) {
     const p1 = zigzagVertex(i);
     const p2 = zigzagVertex(i + 1);
-    const sn = Math.floor(i / 2);
-    const isLeft = sn % 2 === 0;
-    ctx_.globalAlpha = isLeft ? alpha : alpha * 0.4;
-    ctx_.strokeStyle = isLeft ? color : '#6a7a4a';
+    ctx_.globalAlpha = alpha;
+    ctx_.strokeStyle = color;
     ctx_.lineWidth = width;
     ctx_.lineCap = 'round';
-    ctx_.shadowColor = isLeft ? color : 'transparent';
-    ctx_.shadowBlur = isLeft ? 2 : 0;
+    ctx_.shadowColor = color;
+    ctx_.shadowBlur = 2;
     ctx_.beginPath();
     ctx_.moveTo(p1.x, p1.y);
     ctx_.lineTo(p2.x, p2.y);
