@@ -322,7 +322,7 @@ function draw(ts) {
   for (const d of letterData) {
     if (d.raw < 1 && d.drawX < W / 2) {
       const segIdx = Math.floor(d.raw * NUM_STITCHES * 2);
-      const swap = segIdx % 2 !== 0;
+      const swap = segIdx % 2 === 0;
       const ch = swap ? LETTERS[LETTERS.length - 1 - d.i] : LETTERS[d.i];
       drawLetter(ctx, ch, d.drawX, d.drawY, cfg.lSz, cfg.lCol, 0, alpha, 'none');
     }
